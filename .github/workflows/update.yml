@@ -1,0 +1,34 @@
+name: api自动化更新
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  push:
+    paths:
+      - 'config.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Run Aggregator Script
+        run: node index.js
+
+      - name: Commit and Push Results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add output/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto Update Nodes" && git push)
