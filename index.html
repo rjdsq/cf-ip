@@ -2,100 +2,316 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>聚合终端 - 后台管理</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>聚合终端 - 控制中心</title>
   <style>
-    body { background: #0a0a0a; color: #00ff41; font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
-    input, textarea, button { width: 100%; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; margin-bottom: 15px; box-sizing: border-box; font-family: monospace;}
-    button { cursor: pointer; font-weight: bold; }
-    button:hover { background: rgba(0,255,65,0.2); }
-    textarea { height: 400px; resize: vertical; }
-    .header { font-size: 20px; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
+    :root { --c: #00ff41; --b: #0a0a0a; }
+    * { -webkit-tap-highlight-color: transparent!important; outline: none!important; box-sizing: border-box; }
+    body { background: var(--b); color: var(--c); font-family: 'Courier New', monospace; margin: 0; padding-top: 20px; padding-bottom: 60px; font-size: 12px; }
+    body::after { content:""; position:fixed; top:0; left:0; width:100%; height:100%; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,0.02) 2px,rgba(0,255,65,0.02) 4px); pointer-events:none; z-index:998; }
+    .container { padding: 20px; max-width: 800px; margin: 0 auto; position: relative; z-index: 10; }
+    
+    /* 登录页面 */
+    #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--b); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    #login-screen input { width: 300px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,255,65,0.3); color: var(--c); padding: 15px; margin-bottom: 20px; text-align: center; letter-spacing: 2px; }
+    #login-screen button { width: 300px; background: transparent; color: var(--c); border: 1px solid var(--c); padding: 15px; cursor: pointer; letter-spacing: 4px; }
+    
+    /* 底部导航 */
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: #000; border-top: 1px solid rgba(0,255,65,0.3); display: flex; align-items: center; z-index: 1000; }
+    .ni { flex: 1; text-align: center; cursor: pointer; opacity: 0.6; height: 100%; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(0,255,65,0.3); }
+    .ni:last-child { border-right: none; }
+    .ni.active { opacity: 1; font-weight: bold; background: rgba(0,255,65,0.1); }
+    
+    /* 通用组件 */
+    input, textarea, select { width: 100%; background: #000; border: 1px solid var(--c); color: var(--c); padding: 8px; margin-bottom: 10px; font-family: monospace; }
+    textarea.add-api { height: 100px; resize: vertical; }
+    .btn { border: 1px solid var(--c); padding: 8px 15px; color: var(--c); background: none; cursor: pointer; display: inline-block; transition: 0.2s; }
+    .btn:hover { background: rgba(0,255,65,0.2); }
+    .btn-main { background: rgba(0,255,65,0.1); font-weight: bold; }
+    
+    details { border: 1px solid var(--c); margin-bottom: 10px; background: rgba(0,255,65,0.02); }
+    summary { padding: 10px; cursor: pointer; border-bottom: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; }
+    details[open] summary { border-bottom: 1px solid var(--c); margin-bottom: 10px; }
+    .group-body { padding: 0 10px 10px 10px; }
+    
+    .del-btn { color: rgba(0,255,65,0.5); cursor: pointer; }
+    .del-btn:hover { color: #ff4444; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #000; color: var(--c); border: 1px solid var(--c); padding: 10px 20px; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+    .copy-box { border: 1px dashed var(--c); padding: 10px; margin-bottom: 15px; cursor: pointer; word-break: break-all; background: rgba(0,255,65,0.02); }
+    .fab-br { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+    
+    .url-row { display: flex; align-items: center; margin-bottom: 5px; gap: 5px; }
+    .url-row input { margin: 0; flex: 1; }
   </style>
 </head>
 <body>
-  <div class="header">[ 节 点 调 度 终 端 ]</div>
-  
-  <label>GitHub 仓库</label>
-  <input id="repo" placeholder="username/my-nodes" value="">
+  <canvas id="cvs" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.4;pointer-events:none;"></canvas>
+  <div id="toast" class="toast"></div>
 
-  <label>GitHub Token</label>
-  <input id="token" type="password" placeholder="ghp_xxxxxxxxxxxxxx" value="">
-  
-  <div style="display:flex;gap:10px;">
-    <button onclick="loadConfig()">1. 读取配置 (config.json)</button>
-    <button onclick="saveConfig()" style="background: rgba(0,255,65,0.1)">2. 保存并触发更新</button>
+  <div id="login-screen">
+    <div style="font-size:20px; margin-bottom:30px; letter-spacing: 5px;">[ 系 统 登 录 ]</div>
+    <input type="password" id="login-pwd" placeholder="输入控制台密码">
+    <button onclick="checkLogin()">进 入 终 端</button>
   </div>
 
-  <div id="status" style="margin-bottom: 15px; font-size: 12px; color: yellow;">等待操作...</div>
-  
-  <label>配置内容</label>
-  <textarea id="editor" placeholder="点击上方读取配置..."></textarea>
+  <div id="main-app" style="display:none;">
+    <div class="container" id="ta">
+      <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> API 源节点池</div>
+      <div id="group-list"></div>
+      <div class="fab-br">
+        <button class="btn" onclick="addGroup()">新增分组</button>
+        <button class="btn btn-main" onclick="saveToGitHub()">同步至云端</button>
+      </div>
+    </div>
+
+    <div class="container" id="tc" style="display:none;">
+      <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> 订阅路径映射</div>
+      <div id="path-list"></div>
+      <div class="fab-br">
+        <button class="btn" onclick="addPath()">新增路径</button>
+        <button class="btn btn-main" onclick="saveToGitHub()">同步至云端</button>
+      </div>
+    </div>
+
+    <div class="container" id="tl" style="display:none;">
+      <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> 客户端分发链接 (点击复制)</div>
+      <div id="api-links"></div>
+      <div style="margin-top:20px; font-size:11px; opacity:0.6;">* 提示: 修改配置后，云端 Actions 约需 1 分钟生成最新文件。</div>
+    </div>
+
+    <div class="container" id="ts" style="display:none;">
+      <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> 核心环境变量</div>
+      
+      <label>控制台登录密码 (本地校验)</label>
+      <input type="password" id="sys-pwd" placeholder="设置后需使用此密码进入界面">
+      
+      <label>GitHub 仓库名 (格式: username/repo)</label>
+      <input id="sys-repo" placeholder="必填">
+      
+      <label>GitHub Token (需 repo 权限)</label>
+      <input type="password" id="sys-token" placeholder="ghp_xxxxxxxx">
+      
+      <button class="btn btn-main" style="width:100%; margin-top:15px;" onclick="saveSystem()">保存系统配置</button>
+    </div>
+
+    <nav class="nav">
+      <div class="ni active" id="n-a" onclick="switchTab('a')">[ API池 ]</div>
+      <div class="ni" id="n-c" onclick="switchTab('c')">[ API配置 ]</div>
+      <div class="ni" id="n-l" onclick="switchTab('l')">[ API列表 ]</div>
+      <div class="ni" id="n-s" onclick="switchTab('s')">[ 系统配置 ]</div>
+    </nav>
+  </div>
 
   <script>
-    document.getElementById('repo').value = localStorage.getItem('gh_repo') || '';
-    document.getElementById('token').value = localStorage.getItem('gh_token') || '';
+    // --- 矩阵背景动画 ---
+    const c=document.getElementById('cvs'),ctx=c.getContext('2d');
+    let w=c.width=window.innerWidth,h=c.height=window.innerHeight,pts=[];
+    window.onresize=()=>{w=c.width=window.innerWidth;h=c.height=window.innerHeight;};
+    for(let i=0;i<50;i++)pts.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*0.5,vy:(Math.random()-.5)*0.5});
+    function d(){
+      ctx.clearRect(0,0,w,h);ctx.fillStyle='rgba(0,255,65,0.5)';ctx.strokeStyle='rgba(0,255,65,0.1)';
+      for(let i=0;i<pts.length;i++){
+        let p=pts[i];p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1;
+        ctx.beginPath();ctx.arc(p.x,p.y,1,0,Math.PI*2);ctx.fill();
+      }
+      requestAnimationFrame(d);
+    }
+    d();
+
+    // --- 数据与状态 ---
+    let config = { groups: [], paths: [] };
     let fileSha = '';
 
-    function log(msg, color="#00ff41") {
-      document.getElementById('status').innerHTML = `<span style="color:${color}">${msg}</span>`;
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.innerText = msg; el.style.opacity = 1;
+      setTimeout(() => el.style.opacity = 0, 2500);
     }
 
-    async function loadConfig() {
-      const repo = document.getElementById('repo').value;
-      const token = document.getElementById('token').value;
-      if (!repo || !token) return log("错误: 请填写 Repo 和 Token", "red");
+    // --- 登录逻辑 ---
+    function checkLogin() {
+      const input = document.getElementById('login-pwd').value;
+      const savedPwd = localStorage.getItem('sys_pwd') || '';
+      if (savedPwd === '' || input === savedPwd) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        loadSystemConfig();
+        fetchFromGitHub();
+      } else {
+        toast('密码错误');
+      }
+    }
 
-      localStorage.setItem('gh_repo', repo);
-      localStorage.setItem('gh_token', token);
-      log("正在读取...");
+    // --- 切换 Tab ---
+    function switchTab(x) {
+      ['a','c','l','s'].forEach(id => {
+        document.getElementById(`t${id}`).style.display = (x===id) ? 'block' : 'none';
+        document.getElementById(`n-${id}`).classList.toggle('active', x===id);
+      });
+      if (x === 'l') renderLinks();
+    }
 
+    // --- 系统配置读取/保存 ---
+    function loadSystemConfig() {
+      document.getElementById('sys-pwd').value = localStorage.getItem('sys_pwd') || '';
+      document.getElementById('sys-repo').value = localStorage.getItem('sys_repo') || '';
+      document.getElementById('sys-token').value = localStorage.getItem('sys_token') || '';
+    }
+
+    function saveSystem() {
+      localStorage.setItem('sys_pwd', document.getElementById('sys-pwd').value);
+      localStorage.setItem('sys_repo', document.getElementById('sys-repo').value);
+      localStorage.setItem('sys_token', document.getElementById('sys-token').value);
+      toast('系统配置已保存本地');
+    }
+
+    // --- 与 GitHub 交互 ---
+    async function fetchFromGitHub() {
+      const repo = localStorage.getItem('sys_repo');
+      const token = localStorage.getItem('sys_token');
+      if (!repo || !token) { toast('请先配置仓库和Token'); return; }
+
+      toast('正在拉取云端配置...');
       try {
         const res = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
           headers: { 'Authorization': `token ${token}` }
         });
-        if (!res.ok) throw new Error(res.statusText);
+        if (!res.ok) throw new Error();
         const data = await res.json();
         fileSha = data.sha;
-        
-        const content = decodeURIComponent(escape(atob(data.content)));
-        document.getElementById('editor').value = content;
-        log("读取成功！");
+        config = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+        if(!config.groups) config.groups = [];
+        if(!config.paths) config.paths = [];
+        renderGroups();
+        renderPaths();
+        toast('配置同步完成');
       } catch (e) {
-        log("读取失败: " + e.message, "red");
+        toast('拉取失败，请检查配置或初始化 config.json');
       }
     }
 
-    async function saveConfig() {
-      const repo = document.getElementById('repo').value;
-      const token = document.getElementById('token').value;
-      const content = document.getElementById('editor').value;
-      if (!fileSha) return log("错误: 请先读取配置获取文件 SHA", "red");
+    async function saveToGitHub() {
+      flushInputs();
+      const repo = localStorage.getItem('sys_repo');
+      const token = localStorage.getItem('sys_token');
+      if (!repo || !token || !fileSha) { toast('凭证不足，无法保存'); return; }
 
-      log("正在保存并触发同步...");
+      toast('正在写入 GitHub...');
       try {
-        JSON.parse(content);
-        
+        const contentStr = JSON.stringify(config, null, 2);
         const res = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
           method: 'PUT',
-          headers: { 
-            'Authorization': `token ${token}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: "Update config.json via Admin UI",
-            content: btoa(unescape(encodeURIComponent(content))),
+            message: "Update sub rules via Terminal",
+            content: btoa(unescape(encodeURIComponent(contentStr))),
             sha: fileSha
           })
         });
-        
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error();
         const data = await res.json();
         fileSha = data.content.sha;
-        log("保存成功！GitHub Actions 已在后台启动抓取任务。");
+        toast('保存成功！已触发后台打包任务');
       } catch (e) {
-        log("保存失败: " + e.message, "red");
+        toast('写入失败');
       }
+    }
+
+    // --- 分组管理 (API池) ---
+    function renderGroups() {
+      const html = config.groups.map((g, i) => `
+        <details open>
+          <summary>
+            <span>[分组] <input value="${g.name}" onchange="config.groups[${i}].name=this.value" style="width:120px; border:none; border-bottom:1px solid var(--c); background:none; padding:2px; margin:0"></span>
+            <span class="del-btn" onclick="config.groups.splice(${i},1); renderGroups(); renderPaths();">✖ 删除</span>
+          </summary>
+          <div class="group-body">
+            <textarea class="add-api" id="add-api-${i}" placeholder="粘贴新接口或节点，一行一个"></textarea>
+            ${g.urls.map((u, ui) => `
+              <div class="url-row">
+                <input value="${u}" onchange="config.groups[${i}].urls[${ui}]=this.value">
+                <span class="del-btn" onclick="config.groups[${i}].urls.splice(${ui},1); renderGroups()">✖</span>
+              </div>
+            `).join('')}
+          </div>
+        </details>
+      `).join('');
+      document.getElementById('group-list').innerHTML = html || '<div style="opacity:0.5">暂无分组</div>';
+    }
+
+    function addGroup() {
+      const id = 'g' + Date.now();
+      config.groups.push({ id, name: '新分组', urls: [] });
+      renderGroups(); renderPaths();
+    }
+
+    function flushInputs() {
+      config.groups.forEach((g, i) => {
+        const el = document.getElementById('add-api-' + i);
+        if (el && el.value.trim()) {
+          const lines = el.value.split('\n').map(l=>l.trim()).filter(Boolean);
+          g.urls = [...new Set([...g.urls, ...lines])];
+          el.value = '';
+        }
+      });
+      renderGroups();
+    }
+
+    // --- 路径管理 (API配置) ---
+    function renderPaths() {
+      const groupOptions = `<option value="all">混合全部分组 (All)</option>` + 
+        config.groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+
+      const html = config.paths.map((p, i) => {
+        // 渲染已选分组
+        const selectedHTML = (p.groupIds || []).map(gid => {
+          let gname = gid === 'all' ? '全部分组' : (config.groups.find(x => x.id === gid)?.name || '未知分组');
+          return `<span style="background:rgba(0,255,65,0.1); padding:2px 8px; margin-right:5px; border:1px solid var(--c); font-size:11px;">${gname} <span style="cursor:pointer" onclick="config.paths[${i}].groupIds=config.paths[${i}].groupIds.filter(x=>x!=='${gid}'); renderPaths()">✖</span></span>`;
+        }).join('');
+
+        return `
+        <details open>
+          <summary>
+            <span>[路径] <input value="${p.name}" onchange="config.paths[${i}].name=this.value" style="width:120px; border:none; border-bottom:1px solid var(--c); background:none; padding:2px; margin:0"></span>
+            <span class="del-btn" onclick="config.paths.splice(${i},1); renderPaths()">✖ 删除</span>
+          </summary>
+          <div class="group-body">
+            <label>生成文件名 (无需加 .txt)</label>
+            <input value="${p.path}" onchange="config.paths[${i}].path=this.value.replace(/[^a-zA-Z0-9_-]/g,'')">
+            <label>绑定节点来源</label>
+            <div style="margin-bottom:10px">${selectedHTML || '<span style="opacity:0.5;font-size:11px">未绑定任何数据</span>'}</div>
+            <select onchange="if(this.value){ if(!config.paths[${i}].groupIds) config.paths[${i}].groupIds=[]; if(!config.paths[${i}].groupIds.includes(this.value)) config.paths[${i}].groupIds.push(this.value); this.value=''; renderPaths(); }">
+              <option value="">+ 添加绑定来源</option>
+              ${groupOptions}
+            </select>
+          </div>
+        </details>`;
+      }).join('');
+      document.getElementById('path-list').innerHTML = html || '<div style="opacity:0.5">暂无路径</div>';
+    }
+
+    function addPath() {
+      const id = 'p' + Date.now();
+      config.paths.push({ id, name: '新分发路径', path: 'sub' + Math.floor(Math.random()*1000), groupIds: [] });
+      renderPaths();
+    }
+
+    // --- 链接分发 (API列表) ---
+    function renderLinks() {
+      const repo = localStorage.getItem('sys_repo');
+      if (!repo) {
+        document.getElementById('api-links').innerHTML = '请先在系统配置中设置 GitHub 仓库';
+        return;
+      }
+      const html = config.paths.map(p => {
+        const filename = p.path.endsWith('.txt') ? p.path : `${p.path}.txt`;
+        const url = `https://raw.githubusercontent.com/${repo}/main/output/${filename}`;
+        return `
+          <div style="margin-bottom:5px;">${p.name} (/${filename})</div>
+          <div class="copy-box" onclick="navigator.clipboard.writeText('${url}'); toast('链接已复制')">${url}</div>
+        `;
+      }).join('');
+      document.getElementById('api-links').innerHTML = html || '暂无路径记录';
     }
   </script>
 </body>
