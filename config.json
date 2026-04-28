@@ -3,17 +3,20 @@
     {
       "id": "g1",
       "name": "默认源",
-      "urls": []
+      "urls": [],
+      "tid": "t1"
     }
   ],
-  "paths": [
+  "templates": [
     {
-      "id": "p1",
-      "name": "全量订阅",
-      "path": "max",
-      "groupIds": [
-        "all"
-      ]
+      "id": "t1",
+      "name": "原始命名",
+      "fmt": ["original"]
+    },
+    {
+      "id": "t2",
+      "name": "IP与递增",
+      "fmt": ["ip_domain", "txt: - ", "inc01"]
     }
   ]
 }
