@@ -43,7 +43,10 @@ _BASE_MAP = {
     "PE": "🇵🇪 秘鲁", "RO": "🇷🇴 罗马尼亚", "BG": "🇧🇬 保加利亚", "HU": "🇭🇺 匈牙利",
     "CZ": "🇨🇿 捷克", "GR": "🇬🇷 希腊", "PT": "🇵🇹 葡萄牙", "IS": "🇮🇸 冰岛",
     "KZ": "🇰🇿 哈萨克斯坦", "UZ": "🇺🇿 乌兹别克斯坦", "PK": "🇵🇰 巴基斯坦",
-    "NG": "🇳🇬 尼日利亚", "EG": "🇪🇬 埃及"
+    "NG": "🇳🇬 尼日利亚", "EG": "🇪🇬 埃及", "SA": "🇸🇦 沙特", "QA": "🇶🇦 卡塔尔",
+    "BH": "🇧🇭 巴林", "OM": "🇴🇲 阿曼", "KW": "🇰🇼 科威特", "BD": "🇧🇩 孟加拉",
+    "LK": "🇱🇰 斯里兰卡", "MM": "🇲🇲 缅甸", "KH": "🇰🇭 柬埔寨", "LA": "🇱🇦 老挝",
+    "UA": "🇺🇦 乌克兰", "BY": "🇧🇾 白俄罗斯", "MD": "🇲🇩 摩尔多瓦", "KE": "🇰🇪 肯尼亚"
 }
 
 _ALIASES = {
@@ -79,7 +82,18 @@ _ALIASES = {
     "ITA": "IT", "MIL": "IT", "ROM": "IT", "意大利": "IT", "米兰": "IT", "罗马": "IT",
     "ESP": "ES", "MAD": "ES", "西班牙": "ES", "马德里": "ES",
     "CHE": "CH", "ZRH": "CH", "GVA": "CH", "瑞士": "CH", "苏黎世": "CH", "日内瓦": "CH",
-    "SWE": "SE", "STO": "SE", "瑞典": "SE", "斯德哥尔摩": "SE"
+    "SWE": "SE", "STO": "SE", "瑞典": "SE", "斯德哥尔摩": "SE",
+    "SAU": "SA", "RUH": "SA", "JED": "SA", "沙特": "SA", "利雅得": "SA",
+    "QAT": "QA", "DOH": "QA", "卡塔尔": "QA", "多哈": "QA",
+    "BHR": "BH", "BAH": "BH", "巴林": "BH",
+    "OMN": "OM", "MCT": "OM", "阿曼": "OM", "马斯喀特": "OM",
+    "KWT": "KW", "KWI": "KW", "科威特": "KW",
+    "BGD": "BD", "DAC": "BD", "孟加拉": "BD", "达卡": "BD",
+    "LKA": "LK", "CMB": "LK", "斯里兰卡": "LK", "科伦坡": "LK",
+    "MMR": "MM", "RGN": "MM", "缅甸": "MM", "仰光": "MM",
+    "KHM": "KH", "PNH": "KH", "柬埔寨": "KH", "金边": "KH",
+    "LAO": "LA", "VTE": "LA", "老挝": "LA", "万象": "LA",
+    "UKR": "UA", "KBP": "UA", "乌克兰": "UA", "基辅": "UA"
 }
 
 COUNTRY_MAP = {k: v for k, v in _BASE_MAP.items()}
@@ -99,10 +113,8 @@ def get(url):
 def get_only_ip(raw):
     ip4 = IPV4_REG.search(raw)
     ip6 = IPV6_REG.search(raw)
-    if ip4:
-        return ip4.group()
-    if ip6:
-        return ip6.group()
+    if ip4: return ip4.group()
+    if ip6: return ip6.group()
     return None
 
 def is_ad_domain(text):
@@ -117,21 +129,28 @@ def rebuild_line(raw):
     parts = raw.split("#", 1)
     base = parts[0]
     remark = parts[1] if len(parts) > 1 else ""
-    if is_ipv6: return f"{base}#优选IPV6"
-    if not remark: return f"{base}#{ip}"
+    if not remark: 
+        return f"{base}#优选IPV6" if is_ipv6 else f"{base}#{ip}"
 
     raw_remark_parts = [p.strip() for p in remark.split("|") if p.strip()]
     valid_parts = []
     
     for p in raw_remark_parts:
+        clean_p = re.sub(r'[\[\]]', '', p)
         if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d{1,5})?", p):
+            continue
+        if IPV6_REG.search(clean_p) and len(clean_p) >= 11:
             continue
         if is_ad_domain(p):
             continue
         if re.search(r'(?i)\d+(\.\d+)?\s*(ms|mbps|gbps|kb/s|mb/s|m|g)', p):
             continue
+        if re.search(r'\d{2}-\d{2}\s\d{2}:\d{2}', p):
+            continue
+            
+        p = re.sub(r'[▼▲]', '', p).strip()
         p = re.sub(r'^(CF优选-|优选-|CF-)', '', p)
-        if not p or p.upper() in ["CF", "4", "CF-4", "优选"]:
+        if not p or p.upper() in ["CF", "4", "CF-4", "优选", "DEFAULT", "ANYCAST", "NONE", "IPV6", "优选IPV6"]:
             continue
         valid_parts.append(p)
 
@@ -177,7 +196,7 @@ def rebuild_line(raw):
     
     new_remark = " | ".join(new_remark_list)
     if not new_remark:
-        new_remark = ip
+        new_remark = "优选IPV6" if is_ipv6 else ip
         
     return f"{base}#{new_remark}"
 
