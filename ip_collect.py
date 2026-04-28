@@ -2,6 +2,7 @@ import re
 import subprocess
 import requests
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 API_LIST = [
     "https://bestcf.pages.dev/vps789/top20.txt",
@@ -19,20 +20,12 @@ API_LIST = [
     "https://cf.090227.xyz/ct?ips=6"
 ]
 
-DOMAIN_LIST = [
-    "cf.tencentapp.cn",
-    "cloudflare-dl.byoip.top",
-    "cf.877774.xyz",
-    "saas.sin.fan",
-    "bestcf.030101.xyz"
-]
-
 IPV4_REG = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 
 def fetch_content(url):
     try:
         headers = {"User-Agent":"Mozilla/5.0"}
-        resp = requests.get(url,timeout=12,headers=headers)
+        resp = requests.get(url,timeout=8,headers=headers)
         resp.raise_for_status()
         return resp.text
     except Exception:
@@ -46,11 +39,14 @@ def parse_ip(line):
 
 def ping_check(ip_addr):
     if os.name == "nt":
-        args = ["ping","-n","2","-w","1000",ip_addr]
+        args = ["ping","-n","1","-w","500",ip_addr]
     else:
-        args = ["ping","-c","2","-W","1",ip_addr]
-    ret = subprocess.run(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE).returncode
-    return ret == 0
+        args = ["ping","-c","1","-W","0.5",ip_addr]
+    try:
+        ret = subprocess.run(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=2).returncode
+        return ret == 0
+    except:
+        return False
 
 def main():
     line_pool = []
@@ -63,12 +59,15 @@ def main():
                 line_pool.append(trim_line)
     unique_line = list(set(line_pool))
     valid_data = []
-    for raw_line in unique_line:
-        ip = parse_ip(raw_line)
-        if not ip:
-            continue
-        if ping_check(ip):
-            valid_data.append(raw_line)
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        future_to_line = {executor.submit(ping_check, parse_ip(line)): line for line in unique_line if parse_ip(line)}
+        for future in as_completed(future_to_line):
+            line = future_to_line[future]
+            try:
+                if future.result():
+                    valid_data.append(line)
+            except:
+                continue
     with open("max.txt","w",encoding="utf-8") as f:
         for d in valid_data:
             f.write(d + "\n")
