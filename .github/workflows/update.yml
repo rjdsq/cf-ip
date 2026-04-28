@@ -7,25 +7,28 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Install Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install Dependence
+      - name: Install requirements
         run: pip install requests
 
-      - name: Run Script
+      - name: Run IP Script
         run: python ip_collect.py
 
-      - name: Commit & Push
+      - name: Commit & Push Fix 403
         run: |
-          git config --global user.name "actions-bot"
-          git config --global user.email "bot@github.com"
+          git config --global user.name "rjdsq"
+          git config --global user.email "你的邮箱@qq.com"
           git add max.txt
-          git commit -m "auto update valid ip line" 2>/dev/null || true
-          git push
+          git commit -m "auto refresh max.txt"
+          git push origin main --force
