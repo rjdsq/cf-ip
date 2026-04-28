@@ -10,41 +10,44 @@
     body { background: var(--b); color: var(--c); font-family: 'Courier New', monospace; margin: 0; padding-top: 20px; padding-bottom: 60px; font-size: 12px; }
     body::after { content:""; position:fixed; top:0; left:0; width:100%; height:100%; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,0.02) 2px,rgba(0,255,65,0.02) 4px); pointer-events:none; z-index:998; }
     .container { padding: 20px; max-width: 800px; margin: 0 auto; position: relative; z-index: 10; }
-    
     #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--b); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
     #login-screen input { width: 300px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,255,65,0.3); color: var(--c); padding: 15px; margin-bottom: 20px; text-align: center; letter-spacing: 2px; }
     #login-screen button { width: 300px; background: transparent; color: var(--c); border: 1px solid var(--c); padding: 15px; cursor: pointer; letter-spacing: 4px; }
     #login-screen button:hover { background: rgba(0,255,65,0.2); }
-    
     .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: #000; border-top: 1px solid rgba(0,255,65,0.3); display: flex; align-items: center; z-index: 1000; }
     .ni { flex: 1; text-align: center; cursor: pointer; opacity: 0.6; height: 100%; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(0,255,65,0.3); }
     .ni:last-child { border-right: none; }
     .ni.active { opacity: 1; font-weight: bold; background: rgba(0,255,65,0.1); }
-    
     input, textarea, select { width: 100%; background: #000; border: 1px solid var(--c); color: var(--c); padding: 8px; margin-bottom: 10px; font-family: monospace; }
     textarea.add-api { height: 100px; resize: vertical; }
     .btn { border: 1px solid var(--c); padding: 8px 15px; color: var(--c); background: none; cursor: pointer; display: inline-block; transition: 0.2s; }
     .btn:hover { background: rgba(0,255,65,0.2); }
     .btn-main { background: rgba(0,255,65,0.1); font-weight: bold; }
-    
     details { border: 1px solid var(--c); margin-bottom: 10px; background: rgba(0,255,65,0.02); }
     summary { padding: 10px; cursor: pointer; border-bottom: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; }
     details[open] summary { border-bottom: 1px solid var(--c); margin-bottom: 10px; }
     .group-body { padding: 0 10px 10px 10px; }
-    
     .del-btn { color: rgba(0,255,65,0.5); cursor: pointer; }
     .del-btn:hover { color: #ff4444; }
     .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #000; color: var(--c); border: 1px solid var(--c); padding: 10px 20px; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
     .copy-box { border: 1px dashed var(--c); padding: 10px; margin-bottom: 15px; cursor: pointer; word-break: break-all; background: rgba(0,255,65,0.02); }
     .fab-br { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
-    
     .url-row { display: flex; align-items: center; margin-bottom: 5px; gap: 5px; }
     .url-row input { margin: 0; flex: 1; }
+    .tk-tag { display: inline-flex; align-items: center; background: rgba(0,255,65,0.1); border: 1px solid var(--c); padding: 4px 8px; margin: 0 5px 5px 0; }
+    .tk-del { cursor: pointer; margin-left: 8px; color: rgba(0,255,65,0.5); }
+    .tk-del:hover { color: #ff4444; }
+    .ui-ov { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 10001; }
+    .ui-bx { background: #0a0a0a; border: 1px solid var(--c); padding: 20px; width: 300px; }
   </style>
 </head>
 <body>
   <canvas id="cvs" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.4;pointer-events:none;"></canvas>
   <div id="toast" class="toast"></div>
+
+  <div id="u-ov" class="ui-ov">
+    <div class="ui-bx" id="u-bx"></div>
+  </div>
 
   <div id="login-screen">
     <div style="font-size:20px; margin-bottom:30px; letter-spacing: 5px; text-shadow: 0 0 10px rgba(0,255,65,0.5);">[ 核 心 终 端 ]</div>
@@ -63,10 +66,10 @@
     </div>
 
     <div class="container" id="tc" style="display:none;">
-      <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> 订阅分发配置</div>
-      <div id="path-list"></div>
+      <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> 节点输出模板</div>
+      <div id="tpl-list"></div>
       <div class="fab-br">
-        <button class="btn" onclick="addPath()">新增路径</button>
+        <button class="btn" onclick="addTpl()">新增模板</button>
         <button class="btn btn-main" onclick="saveToGitHub()">同步并构建</button>
       </div>
     </div>
@@ -74,13 +77,12 @@
     <div class="container" id="tl" style="display:none;">
       <div style="font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--c); padding-bottom:5px;">>>> 客户端分发链接 (点击复制)</div>
       <div id="api-links"></div>
-      <div style="margin-top:20px; font-size:11px; opacity:0.6;">* 数据同步后，云端 Actions 约需 1 分钟完成最新节点的抓取与静态发布。</div>
     </div>
 
     <nav class="nav">
       <div class="ni active" id="n-a" onclick="switchTab('a')">[ API池 ]</div>
-      <div class="ni" id="n-c" onclick="switchTab('c')">[ API配置 ]</div>
-      <div class="ni" id="n-l" onclick="switchTab('l')">[ API列表 ]</div>
+      <div class="ni" id="n-c" onclick="switchTab('c')">[ 模板配置 ]</div>
+      <div class="ni" id="n-l" onclick="switchTab('l')">[ 分发链接 ]</div>
     </nav>
   </div>
 
@@ -99,14 +101,33 @@
     }
     d();
 
-    let config = { groups: [], paths: [] };
+    let config = { groups: [], templates: [] };
     let fileSha = '';
     let currentToken = '';
+
+    const tkNameMap = { ip_domain:'IP/域名', original:'原始名称', space:'空格', inc:'递增数字', inc01:'递增(01)' };
 
     function toast(msg) {
       const el = document.getElementById('toast');
       el.innerText = msg; el.style.opacity = 1;
       setTimeout(() => el.style.opacity = 0, 2500);
+    }
+
+    function promptUI(msg, callback) {
+      window._uicb = () => {
+        const v = document.getElementById('u-inp').value;
+        document.getElementById('u-ov').style.display = 'none';
+        callback(v);
+      };
+      document.getElementById('u-bx').innerHTML = `
+        <div style="margin-bottom:10px">${msg}</div>
+        <input id="u-inp" style="margin-bottom:15px">
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn" onclick="document.getElementById('u-ov').style.display='none'">取消</button>
+          <button class="btn btn-main" onclick="_uicb()">确定</button>
+        </div>
+      `;
+      document.getElementById('u-ov').style.display = 'flex';
     }
 
     function getAutoRepo() {
@@ -121,35 +142,26 @@
     async function loginWithToken() {
       const tokenInput = document.getElementById('login-token').value.trim();
       const repo = getAutoRepo();
-      
-      if (!repo) {
-        toast('仅支持在 GitHub Pages 环境下运行');
-        return;
-      }
-      if (!tokenInput) {
-        toast('> 错误：凭证不可为空');
-        return;
-      }
+      if (!repo) return toast('仅支持在 GitHub Pages 环境下运行');
+      if (!tokenInput) return toast('> 错误：凭证不可为空');
 
       document.getElementById('login-token').value = '正在验证密钥权限...';
       try {
         const res = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
           headers: { 'Authorization': `token ${tokenInput}` }
         });
-        
         if (!res.ok) throw new Error(res.status);
-        
         const data = await res.json();
         fileSha = data.sha;
         config = JSON.parse(decodeURIComponent(escape(atob(data.content))));
         if(!config.groups) config.groups = [];
-        if(!config.paths) config.paths = [];
+        if(!config.templates) config.templates = [];
         
         currentToken = tokenInput; 
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         renderGroups();
-        renderPaths();
+        renderTpls();
         toast('接入成功');
       } catch (e) {
         document.getElementById('login-token').value = '';
@@ -168,8 +180,7 @@
     async function saveToGitHub() {
       flushInputs();
       const repo = getAutoRepo();
-      if (!repo || !currentToken || !fileSha) { toast('环境错误，无法构建'); return; }
-
+      if (!repo || !currentToken || !fileSha) return toast('环境错误，无法构建');
       toast('正在同步并触发云端构建...');
       try {
         const contentStr = JSON.stringify(config, null, 2);
@@ -177,7 +188,7 @@
           method: 'PUT',
           headers: { 'Authorization': `token ${currentToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: "Update routing config via Terminal",
+            message: "Update config via Terminal",
             content: btoa(unescape(encodeURIComponent(contentStr))),
             sha: fileSha
           })
@@ -192,13 +203,18 @@
     }
 
     function renderGroups() {
+      const tplOptions = config.templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
       const html = config.groups.map((g, i) => `
         <details open>
           <summary>
-            <span>[源] <input value="${g.name}" onchange="config.groups[${i}].name=this.value" style="width:120px; border:none; border-bottom:1px solid var(--c); background:none; padding:2px; margin:0"></span>
-            <span class="del-btn" onclick="config.groups.splice(${i},1); renderGroups(); renderPaths();">✖ 删除</span>
+            <span><input value="${g.name}" onchange="config.groups[${i}].name=this.value" style="width:120px; border:none; border-bottom:1px solid var(--c); background:none; padding:2px; margin:0"></span>
+            <span class="del-btn" onclick="config.groups.splice(${i},1); renderGroups();">✖ 删除</span>
           </summary>
           <div class="group-body">
+            <select style="margin-bottom:15px; width:50%;" onchange="config.groups[${i}].tid=this.value">
+              <option value="">-- 选择模板 --</option>
+              ${config.templates.map(t => `<option value="${t.id}" ${t.id === g.tid ? 'selected' : ''}>${t.name}</option>`).join('')}
+            </select>
             <textarea class="add-api" id="add-api-${i}" placeholder="录入 API 链接或纯节点，按行分割"></textarea>
             ${g.urls.map((u, ui) => `
               <div class="url-row">
@@ -213,9 +229,8 @@
     }
 
     function addGroup() {
-      const id = 'g' + Date.now();
-      config.groups.push({ id, name: '未命名分组', urls: [] });
-      renderGroups(); renderPaths();
+      config.groups.push({ id: 'g' + Date.now(), name: '未命名分组', urls: [], tid: config.templates[0]?.id || '' });
+      renderGroups();
     }
 
     function flushInputs() {
@@ -230,58 +245,54 @@
       renderGroups();
     }
 
-    function renderPaths() {
-      const groupOptions = `<option value="all">混合全部分组 (All)</option>` + 
-        config.groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
-
-      const html = config.paths.map((p, i) => {
-        const selectedHTML = (p.groupIds || []).map(gid => {
-          let gname = gid === 'all' ? '全部分组' : (config.groups.find(x => x.id === gid)?.name || '无效来源');
-          return `<span style="background:rgba(0,255,65,0.1); padding:2px 8px; margin-right:5px; border:1px solid var(--c); font-size:11px;">${gname} <span style="cursor:pointer" onclick="config.paths[${i}].groupIds=config.paths[${i}].groupIds.filter(x=>x!=='${gid}'); renderPaths()">✖</span></span>`;
-        }).join('');
-
-        return `
+    function renderTpls() {
+      const html = config.templates.map((t, i) => `
         <details open>
           <summary>
-            <span>[线] <input value="${p.name}" onchange="config.paths[${i}].name=this.value" style="width:120px; border:none; border-bottom:1px solid var(--c); background:none; padding:2px; margin:0"></span>
-            <span class="del-btn" onclick="config.paths.splice(${i},1); renderPaths()">✖ 删除</span>
+            <span><input value="${t.name}" onchange="config.templates[${i}].name=this.value" style="width:120px; border:none; border-bottom:1px solid var(--c); background:none; padding:2px; margin:0"></span>
+            <span class="del-btn" onclick="config.templates.splice(${i},1); renderTpls(); renderGroups();">✖ 删除</span>
           </summary>
           <div class="group-body">
-            <label>指向文件名 (系统自动补充 .txt)</label>
-            <input value="${p.path}" onchange="config.paths[${i}].path=this.value.replace(/[^a-zA-Z0-9_-]/g,'')">
-            <label>源数据绑定</label>
-            <div style="margin-bottom:10px">${selectedHTML || '<span style="opacity:0.5;font-size:11px">暂无绑定记录</span>'}</div>
-            <select onchange="if(this.value){ if(!config.paths[${i}].groupIds) config.paths[${i}].groupIds=[]; if(!config.paths[${i}].groupIds.includes(this.value)) config.paths[${i}].groupIds.push(this.value); this.value=''; renderPaths(); }">
-              <option value="">+ 新增数据源节点流</option>
-              ${groupOptions}
-            </select>
+            <div style="margin-bottom:10px;">
+              ${t.fmt.map((fk, fi) => `
+                <span class="tk-tag">
+                  ${fk.startsWith('txt:') ? '文字: ' + fk.substring(4) : tkNameMap[fk]}
+                  <span class="tk-del" onclick="config.templates[${i}].fmt.splice(${fi},1); renderTpls()">✖</span>
+                </span>
+              `).join('')}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px;">
+              <button class="btn" style="padding:4px 8px; font-size:11px" onclick="config.templates[${i}].fmt.push('ip_domain'); renderTpls()">+ IP/域名</button>
+              <button class="btn" style="padding:4px 8px; font-size:11px" onclick="config.templates[${i}].fmt.push('original'); renderTpls()">+ 原始名称</button>
+              <button class="btn" style="padding:4px 8px; font-size:11px" onclick="config.templates[${i}].fmt.push('space'); renderTpls()">+ 空格</button>
+              <button class="btn" style="padding:4px 8px; font-size:11px" onclick="config.templates[${i}].fmt.push('inc'); renderTpls()">+ 递增</button>
+              <button class="btn" style="padding:4px 8px; font-size:11px" onclick="config.templates[${i}].fmt.push('inc01'); renderTpls()">+ 递增01</button>
+              <button class="btn" style="padding:4px 8px; font-size:11px" onclick="promptUI('输入自定义文字', v => { if(v){ config.templates[${i}].fmt.push('txt:'+v); renderTpls(); } })">+ 自定义文字</button>
+            </div>
           </div>
-        </details>`;
-      }).join('');
-      document.getElementById('path-list').innerHTML = html || '<div style="opacity:0.5">尚未配置文件路由</div>';
+        </details>
+      `).join('');
+      document.getElementById('tpl-list').innerHTML = html || '<div style="opacity:0.5">暂无模板</div>';
     }
 
-    function addPath() {
-      const id = 'p' + Date.now();
-      config.paths.push({ id, name: '新建分发链路', path: 'route_' + Math.floor(Math.random()*1000), groupIds: [] });
-      renderPaths();
+    function addTpl() {
+      config.templates.push({ id: 't' + Date.now(), name: '新模板', fmt: ['original'] });
+      renderTpls();
     }
 
     function renderLinks() {
       const repo = getAutoRepo();
-      if (!repo) {
-        document.getElementById('api-links').innerHTML = '环境验证失败，无法映射网络链路';
-        return;
-      }
-      const html = config.paths.map(p => {
-        const filename = p.path.endsWith('.txt') ? p.path : `${p.path}.txt`;
-        const url = `https://raw.githubusercontent.com/${repo}/main/output/${filename}`;
-        return `
-          <div style="margin-bottom:5px;">${p.name} (/${filename})</div>
-          <div class="copy-box" onclick="navigator.clipboard.writeText('${url}'); toast('链接已复制到剪贴板')">${url}</div>
-        `;
+      if (!repo) return document.getElementById('api-links').innerHTML = '环境验证失败，无法映射网络链路';
+      
+      let html = config.groups.map(g => {
+        const url = `https://raw.githubusercontent.com/${repo}/main/api/${g.name}.txt`;
+        return `<div style="margin-bottom:5px;">[分组] ${g.name}</div><div class="copy-box" onclick="navigator.clipboard.writeText('${url}'); toast('链接已复制')">${url}</div>`;
       }).join('');
-      document.getElementById('api-links').innerHTML = html || '链路记录为空';
+      
+      const maxUrl = `https://raw.githubusercontent.com/${repo}/main/api/max.txt`;
+      html += `<div style="margin-bottom:5px; margin-top:15px">[全局] 总订阅聚合</div><div class="copy-box" onclick="navigator.clipboard.writeText('${maxUrl}'); toast('链接已复制')">${maxUrl}</div>`;
+      
+      document.getElementById('api-links').innerHTML = html;
     }
   </script>
 </body>
