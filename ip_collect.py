@@ -1,6 +1,5 @@
 import re
 import requests
-import os
 import socket
 
 API_LIST = [
@@ -27,50 +26,70 @@ DOMAIN_LIST = [
     "bestcf.030101.xyz"
 ]
 
-IP_REG = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4})")
+IPV4_REG = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+IPV6_REG = re.compile(r"([0-9a-fA-F]{1,4}:){2,}[0-9a-fA-F]{0,4}")
+AREA_REG = re.compile(r"([A-Z]{2})\s*\|\s*")
 
-def fetch_content(url):
+def get(url):
     try:
-        headers = {"User-Agent":"Mozilla/5.0"}
-        resp = requests.get(url,timeout=15,headers=headers)
-        resp.raise_for_status()
-        return resp.text
-    except Exception:
+        hd = {"User-Agent":"Mozilla/5.0"}
+        return requests.get(url,timeout=12,headers=hd).text
+    except:
         return ""
 
-def parse_ip(line):
-    match = IP_REG.search(line)
-    if match:
-        return match.group()
-    return None
+def get_area(text):
+    m = AREA_REG.search(text)
+    if m:
+        return m.group(1)
+    return ""
 
-def resolve_domain(domain):
-    res_list = []
+def rebuild_line(raw):
+    ip4 = IPV4_REG.search(raw)
+    ip6 = IPV6_REG.search(raw)
+    area = get_area(raw)
+    if ip4:
+        ip = ip4.group()
+    elif ip6:
+        ip = ip6.group()
+    else:
+        return raw
+    base = raw.split("#")[0]
+    if area:
+        new_suffix = f"{area} | {ip}"
+    else:
+        new_suffix = ip
+    return f"{base}#{new_suffix}"
+
+def domain_to_lines(domain):
+    out = []
     try:
-        info = socket.getaddrinfo(domain, 443)
-        for item in info:
+        addr = socket.getaddrinfo(domain,443)
+        for item in addr:
             ip = item[4][0]
-            res_list.append(f"{ip}:443#{domain}")
-    except Exception:
+            if ":" in ip and "." not in ip:
+                out.append(f"{ip}:443#{domain}")
+            else:
+                out.append(f"{ip}:443#{domain}")
+    except:
         pass
-    return res_list
+    return out
 
 def main():
-    line_pool = []
-    for url in API_LIST:
-        text = fetch_content(url)
-        lines = text.splitlines()
-        for l in lines:
-            s = l.strip()
-            if s and parse_ip(s):
-                line_pool.append(s)
+    all_lines = []
+    for api in API_LIST:
+        txt = get(api)
+        lines = txt.splitlines()
+        for line in lines:
+            s = line.strip()
+            if s:
+                all_lines.append(rebuild_line(s))
     for d in DOMAIN_LIST:
-        dom_lines = resolve_domain(d)
-        line_pool.extend(dom_lines)
-    unique_lines = list(set(line_pool))
+        d_lines = domain_to_lines(d)
+        all_lines.extend(d_lines)
+    unique = list(set(all_lines))
     with open("max.txt","w",encoding="utf-8") as f:
-        for row in unique_lines:
-            f.write(row + "\n")
+        for l in unique:
+            f.write(l + "\n")
 
 if __name__ == "__main__":
     main()
