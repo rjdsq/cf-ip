@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>聚合终端 - 后台管理</title>
+  <style>
+    body { background: #0a0a0a; color: #00ff41; font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
+    input, textarea, button { width: 100%; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; margin-bottom: 15px; box-sizing: border-box; font-family: monospace;}
+    button { cursor: pointer; font-weight: bold; }
+    button:hover { background: rgba(0,255,65,0.2); }
+    textarea { height: 400px; resize: vertical; }
+    .header { font-size: 20px; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
+  </style>
+</head>
+<body>
+  <div class="header">[ 节 点 调 度 终 端 ]</div>
+  
+  <label>GitHub 仓库</label>
+  <input id="repo" placeholder="username/my-nodes" value="">
+
+  <label>GitHub Token</label>
+  <input id="token" type="password" placeholder="ghp_xxxxxxxxxxxxxx" value="">
+  
+  <div style="display:flex;gap:10px;">
+    <button onclick="loadConfig()">1. 读取配置 (config.json)</button>
+    <button onclick="saveConfig()" style="background: rgba(0,255,65,0.1)">2. 保存并触发更新</button>
+  </div>
+
+  <div id="status" style="margin-bottom: 15px; font-size: 12px; color: yellow;">等待操作...</div>
+  
+  <label>配置内容</label>
+  <textarea id="editor" placeholder="点击上方读取配置..."></textarea>
+
+  <script>
+    document.getElementById('repo').value = localStorage.getItem('gh_repo') || '';
+    document.getElementById('token').value = localStorage.getItem('gh_token') || '';
+    let fileSha = '';
+
+    function log(msg, color="#00ff41") {
+      document.getElementById('status').innerHTML = `<span style="color:${color}">${msg}</span>`;
+    }
+
+    async function loadConfig() {
+      const repo = document.getElementById('repo').value;
+      const token = document.getElementById('token').value;
+      if (!repo || !token) return log("错误: 请填写 Repo 和 Token", "red");
+
+      localStorage.setItem('gh_repo', repo);
+      localStorage.setItem('gh_token', token);
+      log("正在读取...");
+
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
+          headers: { 'Authorization': `token ${token}` }
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        fileSha = data.sha;
+        
+        const content = decodeURIComponent(escape(atob(data.content)));
+        document.getElementById('editor').value = content;
+        log("读取成功！");
+      } catch (e) {
+        log("读取失败: " + e.message, "red");
+      }
+    }
+
+    async function saveConfig() {
+      const repo = document.getElementById('repo').value;
+      const token = document.getElementById('token').value;
+      const content = document.getElementById('editor').value;
+      if (!fileSha) return log("错误: 请先读取配置获取文件 SHA", "red");
+
+      log("正在保存并触发同步...");
+      try {
+        JSON.parse(content);
+        
+        const res = await fetch(`https://api.github.com/repos/${repo}/contents/config.json`, {
+          method: 'PUT',
+          headers: { 
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: "Update config.json via Admin UI",
+            content: btoa(unescape(encodeURIComponent(content))),
+            sha: fileSha
+          })
+        });
+        
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        fileSha = data.content.sha;
+        log("保存成功！GitHub Actions 已在后台启动抓取任务。");
+      } catch (e) {
+        log("保存失败: " + e.message, "red");
+      }
+    }
+  </script>
+</body>
+</html>
