@@ -1,6 +1,5 @@
 import re
 import requests
-import socket
 
 API_LIST = [
     "https://bestcf.pages.dev/vps789/top20.txt",
@@ -25,6 +24,17 @@ DOMAIN_LIST = [
     "saas.sin.fan",
     "bestcf.030101.xyz"
 ]
+
+ALLOWED_DOMAINS = set()
+for d in DOMAIN_LIST:
+    base = d.split("#", 1)[0].strip()
+    if "]:" in base:
+        host = base.rsplit("]:", 1)[0].lstrip("[")
+    elif base.count(":") == 1:
+        host = base.split(":", 1)[0]
+    else:
+        host = base
+    ALLOWED_DOMAINS.add(host)
 
 IPV4_REG = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 IPV6_REG = re.compile(r"([0-9a-fA-F]{1,4}:){2,}[0-9a-fA-F]{0,4}")
@@ -63,7 +73,8 @@ def get(url):
     except: return ""
 
 def get_only_ip(raw):
-    ip4 = IPV4_REG.search(raw); ip6 = IPV6_REG.search(raw)
+    ip4 = IPV4_REG.search(raw)
+    ip6 = IPV6_REG.search(raw)
     if ip4: return ip4.group()
     if ip6: return ip6.group()
     return None
@@ -73,12 +84,17 @@ def is_ad_domain(text):
     return bool(re.match(r"^[a-zA-Z0-9][a-zA-Z0-9\-\.]*\.[a-zA-Z]{2,}$", text.strip()))
 
 def rebuild_line(raw):
-    ip = get_only_ip(raw)
-    if not ip: return raw
-    is_ipv6 = ":" in ip
     parts = raw.split("#", 1)
-    base = parts[0]; remark = parts[1] if len(parts) > 1 else ""
-    if not remark: return f"{base}#IPV6" if is_ipv6 else f"{base}#{ip}"
+    base = parts[0].strip()
+    remark = parts[1].strip() if len(parts) > 1 else ""
+
+    ip = get_only_ip(base)
+    is_ipv6 = bool(IPV6_REG.search(base))
+    
+    if not remark:
+        if is_ipv6: remark = "IPV6"
+        elif ip: remark = ip
+        else: remark = base.split(":")[0]
 
     raw_remark_parts = [p.strip() for p in remark.split("|") if p.strip()]
     valid_parts = []
@@ -86,7 +102,7 @@ def rebuild_line(raw):
         clean_p = re.sub(r'[\[\]]', '', p)
         if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d{1,5})?", p): continue
         if IPV6_REG.search(clean_p) and len(clean_p) >= 11: continue
-        if is_ad_domain(p) and p not in DOMAIN_LIST: continue
+        if is_ad_domain(p) and p not in ALLOWED_DOMAINS: continue
         if re.search(r'(?i)\d+(\.\d+)?\s*(ms|mbps|gbps|kb/s|mb/s|m|g)', p): continue
         if re.search(r'\d{2}-\d{2}\s\d{2}:\d{2}', p): continue
         p = re.sub(r'[▼▲]', '', p).strip()
@@ -120,40 +136,55 @@ def rebuild_line(raw):
             
     new_remark_list = []
     if country_info: new_remark_list.append(country_info)
-    if is_ipv6: new_remark_list.append("IPV6")
+    if is_ipv6 and ip: new_remark_list.append("IPV6")
     if custom_name: new_remark_list.append(custom_name)
     new_remark_list.extend(rest_parts)
     
     new_remark = " | ".join(new_remark_list)
-    if not new_remark: new_remark = "IPV6" if is_ipv6 else ip
+    if not new_remark:
+        if is_ipv6: new_remark = "IPV6"
+        elif ip: new_remark = ip
+        else: new_remark = base.split(":")[0]
+        
     return f"{base}#{new_remark}"
 
-def domain_to_lines(domain):
-    out = []
-    try:
-        addr = socket.getaddrinfo(domain, 443)
-        for item in addr:
-            ip = item[4][0]; is_ipv6 = ":" in ip
-            base = f"[{ip}]:443" if is_ipv6 else f"{ip}:443"
-            raw_line = f"{base}#{domain}"
-            out.append([ip, rebuild_line(raw_line)])
-    except: pass
-    return out
+def process_domain_item(raw_item):
+    parts = raw_item.split("#", 1)
+    base = parts[0].strip()
+    original_remark = parts[1].strip() if len(parts) > 1 else ""
+
+    port = "443"
+    host = base
+    if "]:" in base:
+        host, port = base.rsplit("]:", 1)
+        host = host.lstrip("[")
+    elif base.count(":") == 1:
+        host, port = base.split(":", 1)
+
+    remark = original_remark if original_remark else host
+    base_addr = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
+    return host, rebuild_line(f"{base_addr}#{remark}")
 
 def main():
-    ip_seen = set(); final_lines = []
+    seen_addresses = set(); final_lines = []
+    
     for api in API_LIST:
         txt = get(api)
         for line in txt.splitlines():
             s = line.strip()
             if not s: continue
-            ip = get_only_ip(s)
-            if not ip or ip in ip_seen: continue
-            ip_seen.add(ip); final_lines.append(rebuild_line(s))
-    for d in DOMAIN_LIST:
-        for real_ip, line in domain_to_lines(d):
-            if real_ip not in ip_seen:
-                ip_seen.add(real_ip); final_lines.append(line)
+            base = s.split("#", 1)[0].strip()
+            addr = get_only_ip(base)
+            if not addr or addr in seen_addresses: continue
+            seen_addresses.add(addr)
+            final_lines.append(rebuild_line(s))
+            
+    for raw_item in DOMAIN_LIST:
+        host, rebuilt_line = process_domain_item(raw_item)
+        if host not in seen_addresses:
+            seen_addresses.add(host)
+            final_lines.append(rebuilt_line)
+            
     with open("max.txt", "w", encoding="utf-8") as f:
         for item in final_lines: f.write(item + "\n")
 
