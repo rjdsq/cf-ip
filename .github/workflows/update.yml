@@ -25,10 +25,10 @@ jobs:
       - name: Run IP Script
         run: python ip_collect.py
 
-      - name: Commit & Push Fix 403
+      - name: Commit & Push
         run: |
           git config --global user.name "rjdsq"
-          git config --global user.email "你的邮箱@qq.com"
+          git config --global user.email "你的GitHub邮箱"
           git add max.txt
-          git commit -m "auto refresh max.txt"
+          git commit -m "auto update max.txt" || echo "no changes"
           git push origin main --force
