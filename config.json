@@ -1,0 +1,11 @@
+{
+  "groups": [
+    {
+      "name": "Group1",
+      "urls": [
+        "https://example.com/api/nodes",
+        "1.1.1.1:443#纯净IP"
+      ]
+    }
+  ]
+}
