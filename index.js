@@ -19,22 +19,22 @@ const fetchText = (url) => {
 
 async function main() {
   const config = JSON.parse(fs.readFileSync('config.json', 'utf-8'));
-  const outDir = './output';
+  const outDir = './api';
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
-  const groupData = {}; 
+  const templates = config.templates && config.templates.length > 0 ? config.templates : [{ id: "t1", name: "原始命名", fmt: ["original"] }];
+  let allNodesMap = new Map();
 
-  // 1. 并发抓取所有分组内容
   for (const group of config.groups || []) {
     const results = await Promise.all((group.urls || []).map(u => fetchText(u.trim())));
-    const nodes = new Set();
+    const groupNodesMap = new Map();
     
     results.forEach(text => {
       const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('<'));
       lines.forEach(line => {
         const parts = line.split('#');
         let hostPort = parts[0].trim().split(' ')[0];
-        let name = parts[1] ? parts[1].trim() : group.name;
+        let originalName = parts[1] ? parts[1].trim() : group.name;
         
         let h = hostPort, p = "443";
         if (h.startsWith('[')) {
@@ -49,29 +49,39 @@ async function main() {
           h = pts[0]; 
           if (pts[1]) p = pts[1];
         }
-        nodes.add(`${h}:${p}#${name}`);
+        
+        const hpKey = `${h}:${p}`;
+        if (!groupNodesMap.has(hpKey)) {
+          groupNodesMap.set(hpKey, { h, p, originalName });
+        }
+        if (!allNodesMap.has(hpKey)) {
+          allNodesMap.set(hpKey, { h, p, originalName });
+        }
       });
     });
-    groupData[group.id] = nodes;
-  }
 
-  // 2. 根据用户配置的路径，生成对应的 txt 订阅文件
-  for (const pt of config.paths || []) {
-    let pathNodes = new Set();
+    const tpl = templates.find(t => t.id === group.tid) || templates[0];
+    const sortedNodes = Array.from(groupNodesMap.values()).sort((a, b) => a.h.localeCompare(b.h));
     
-    if (pt.groupIds && pt.groupIds.includes('all')) {
-      Object.values(groupData).forEach(set => set.forEach(n => pathNodes.add(n)));
-    } else {
-      (pt.groupIds || []).forEach(gid => {
-        if (groupData[gid]) groupData[gid].forEach(n => pathNodes.add(n));
+    const outLines = sortedNodes.map((node, index) => {
+      let nameStr = "";
+      tpl.fmt.forEach(tk => {
+        if (tk === 'ip_domain') nameStr += node.h;
+        else if (tk === 'original') nameStr += node.originalName;
+        else if (tk === 'space') nameStr += ' ';
+        else if (tk === 'inc') nameStr += (index + 1);
+        else if (tk === 'inc01') nameStr += (index + 1).toString().padStart(2, '0');
+        else if (tk.startsWith('txt:')) nameStr += tk.substring(4);
       });
-    }
+      return `${node.h}:${node.p}#${nameStr}`;
+    });
 
-    const sorted = Array.from(pathNodes).sort();
-    const filename = pt.path.endsWith('.txt') ? pt.path : `${pt.path}.txt`;
-    fs.writeFileSync(`${outDir}/${filename}`, sorted.join('\n'));
-    console.log(`Generated ${filename} with ${sorted.length} nodes.`);
+    fs.writeFileSync(`${outDir}/${group.name}.txt`, outLines.join('\n'));
   }
+
+  const sortedAll = Array.from(allNodesMap.values()).sort((a, b) => a.h.localeCompare(b.h));
+  const maxLines = sortedAll.map(node => `${node.h}:${node.p}#${node.originalName}`);
+  fs.writeFileSync(`${outDir}/max.txt`, maxLines.join('\n'));
 }
 
 main();
