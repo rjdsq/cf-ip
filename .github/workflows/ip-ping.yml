@@ -1,4 +1,3 @@
-          git push origin main --force
 name: 自动化IP过滤采集
 on:
   schedule:
