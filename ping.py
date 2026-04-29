@@ -22,20 +22,29 @@ def check_tcp_ping(line):
                 port = 443
                 
         with socket.create_connection((host, port), timeout=2):
+            print(f"[保留] 端口开放: {host}:{port}")
             return True, line
     except:
+        # 如果解析失败或者无法连通，统一走这里
+        fail_target = left_part if 'left_part' in locals() else line
+        print(f"[丢弃] 无法连通或异常: {fail_target}")
         return False, line
 
 if __name__ == '__main__':
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"=== 开始执行 TCP 端口清洗任务 ({start_time}) ===")
     
     try:
         with open('max.txt', 'r', encoding='utf-8') as f:
             lines = [l for l in f.readlines() if l.strip()]
     except FileNotFoundError:
+        print("错误: 找不到 max.txt 文件！")
         sys.exit(1)
 
     total_count = len(lines)
+    print(f"-> 成功读取 max.txt，共发现 {total_count} 个待测目标。")
+    print("-> 正在启动 50 线程并发检测，请稍候...\n")
+
     keep_list = []
     fail_list = []
 
@@ -51,6 +60,10 @@ if __name__ == '__main__':
     discarded_count = len(fail_list)
     end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    print("\n=== 检测过程结束 ===")
+    print(f"统计信息: 总数 {total_count} | 保留 {kept_count} | 丢弃 {discarded_count}")
+
+    # 写入 ping.log 文件 (只包含统计和丢弃清单)
     log_content = [
         f"任务开始时间：{start_time}",
         f"任务结束时间：{end_time}",
@@ -64,10 +77,11 @@ if __name__ == '__main__':
         *fail_list
     ]
 
-    with open('ping日志.txt', 'w', encoding='utf-8') as f:
+    with open('ping.log', 'w', encoding='utf-8') as f:
         f.write('\n'.join(log_content))
 
+    # 更新 max.txt 文件 (只包含存活节点)
     with open('max.txt', 'w', encoding='utf-8') as f:
         f.write('\n'.join(keep_list) + '\n')
     
-    print(f"清洗完成，详情见 ping日志.txt")
+    print(f"-> 存活节点已重新写入 max.txt，详细丢弃日志已保存至 ping.log")
