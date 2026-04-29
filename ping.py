@@ -9,10 +9,17 @@ def check_tcp_ping(line):
         return None, None
     try:
         left_part = line.split('#')[0].strip()
+        is_ipv6 = False
+        
         if left_part.startswith('['):
             host = left_part.split(']')[0][1:]
             port_str = left_part.split(']')[-1]
             port = int(port_str[1:]) if port_str.startswith(':') else 443
+            is_ipv6 = True
+        elif left_part.count(':') > 1:
+            host = left_part
+            port = 443
+            is_ipv6 = True
         else:
             if ':' in left_part:
                 host, port_str = left_part.split(':', 1)
@@ -21,13 +28,12 @@ def check_tcp_ping(line):
                 host = left_part
                 port = 443
                 
+        if is_ipv6:
+            return True, line
+            
         with socket.create_connection((host, port), timeout=2):
-            print(f"[保留] 端口开放: {host}:{port}")
             return True, line
     except:
-        # 如果解析失败或者无法连通，统一走这里
-        fail_target = left_part if 'left_part' in locals() else line
-        print(f"[丢弃] 无法连通或异常: {fail_target}")
         return False, line
 
 if __name__ == '__main__':
@@ -43,7 +49,7 @@ if __name__ == '__main__':
 
     total_count = len(lines)
     print(f"-> 成功读取 max.txt，共发现 {total_count} 个待测目标。")
-    print("-> 正在启动 50 线程并发检测，请稍候...\n")
+    print("-> 正在执行并发检测，控制台已屏蔽详细输出，请稍候...\n")
 
     keep_list = []
     fail_list = []
@@ -60,10 +66,9 @@ if __name__ == '__main__':
     discarded_count = len(fail_list)
     end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    print("\n=== 检测过程结束 ===")
-    print(f"统计信息: 总数 {total_count} | 保留 {kept_count} | 丢弃 {discarded_count}")
+    print("=== 检测过程结束 ===")
+    print(f"统计信息: 节点总数 {total_count} | 丢弃数量 {discarded_count} | 保留数量 {kept_count}")
 
-    # 写入 ping.log 文件 (只包含统计和丢弃清单)
     log_content = [
         f"任务开始时间：{start_time}",
         f"任务结束时间：{end_time}",
@@ -80,7 +85,6 @@ if __name__ == '__main__':
     with open('ping.log', 'w', encoding='utf-8') as f:
         f.write('\n'.join(log_content))
 
-    # 更新 max.txt 文件 (只包含存活节点)
     with open('max.txt', 'w', encoding='utf-8') as f:
         f.write('\n'.join(keep_list) + '\n')
     
