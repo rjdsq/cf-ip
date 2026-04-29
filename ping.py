@@ -1,21 +1,18 @@
 import socket
 import concurrent.futures
 import sys
+from datetime import datetime
 
 def check_tcp_ping(line):
     line = line.strip()
     if not line:
-        return None
+        return None, None
     try:
         left_part = line.split('#')[0].strip()
-        
         if left_part.startswith('['):
             host = left_part.split(']')[0][1:]
             port_str = left_part.split(']')[-1]
-            if port_str.startswith(':'):
-                port = int(port_str[1:])
-            else:
-                port = 443
+            port = int(port_str[1:]) if port_str.startswith(':') else 443
         else:
             if ':' in left_part:
                 host, port_str = left_part.split(':', 1)
@@ -25,49 +22,54 @@ def check_tcp_ping(line):
                 port = 443
                 
         with socket.create_connection((host, port), timeout=2):
-            pass
-            
-        print(f"[保留] 端口开放: {host}:{port}")
-        return line
-        
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        print(f"[丢弃] 无法连通: {host}:{port}")
-        return None
-    except Exception:
-        print(f"[错误] 解析或测试异常: {line}")
-        return None
+            return True, line
+    except:
+        return False, line
 
 if __name__ == '__main__':
-    print("=== 开始执行 TCP 端口清洗任务 ===")
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     try:
         with open('max.txt', 'r', encoding='utf-8') as f:
-            lines = [line for line in f.readlines() if line.strip()]
+            lines = [l for l in f.readlines() if l.strip()]
     except FileNotFoundError:
-        print("错误: 找不到 max.txt 文件！")
         sys.exit(1)
-        
+
     total_count = len(lines)
-    print(f"-> 成功读取 max.txt，共发现 {total_count} 个待测目标。")
-    print("-> 正在启动 50 线程并发 TCP 检测...\n")
-    
-    valid_lines = []
+    keep_list = []
+    fail_list = []
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-        for res in executor.map(check_tcp_ping, lines):
-            if res:
-                valid_lines.append(res)
-                
-    kept_count = len(valid_lines)
-    discarded_count = total_count - kept_count
-    
-    print("\n=== 检测过程结束 ===")
-    print(f"统计信息:")
-    print(f"  - 初始目标总数: {total_count}")
-    print(f"  - 成功保留数量: {kept_count}")
-    print(f"  - 超时丢弃数量: {discarded_count}")
-    
+        results = list(executor.map(check_tcp_ping, lines))
+        for is_ok, content in results:
+            if is_ok:
+                keep_list.append(content)
+            else:
+                fail_list.append(content)
+
+    kept_count = len(keep_list)
+    discarded_count = len(fail_list)
+    end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    log_content = [
+        f"任务开始时间：{start_time}",
+        f"任务结束时间：{end_time}",
+        f"--------------------------",
+        f"节点总数：{total_count}",
+        f"保留数量：{kept_count}",
+        f"丢弃数量：{discarded_count}",
+        f"存活率：{round(kept_count/total_count*100, 2) if total_count > 0 else 0}%",
+        f"--------------------------",
+        f"\n[保留清单]",
+        *keep_list,
+        f"\n[丢弃清单]",
+        *fail_list
+    ]
+
+    with open('ping日志.txt', 'w', encoding='utf-8') as f:
+        f.write('\n'.join(log_content))
+
     with open('max.txt', 'w', encoding='utf-8') as f:
-        for line in valid_lines:
-            f.write(line + '\n')
-            
-    print("-> 存活的节点已重新写入 max.txt。")
+        f.write('\n'.join(keep_list) + '\n')
+    
+    print(f"清洗完成，详情见 ping日志.txt")
