@@ -1,4 +1,5 @@
-name: Auto IP Collect
+name: 采集IP
+
 on:
   schedule:
     - cron: '*/30 * * * *'
@@ -7,7 +8,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,13 +23,16 @@ jobs:
       - name: Install requirements
         run: pip install requests
 
-      - name: Run IP Script
+      - name: Run IP Collect
         run: python ip.py
+
+      - name: Run Ping Cleanup
+        run: python ping.py
 
       - name: Commit & Push
         run: |
-          git config --global user.name "rjdsq"
-          git config --global user.email "你的GitHub邮箱"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add max.txt
-          git commit -m "auto update max.txt" || echo "no changes"
-          git push origin main --force
+          git commit -m "自动更新：已完成节点采集与存活检测" || echo "no changes"
+          git push origin main
