@@ -1,4 +1,4 @@
-name: 采集IP
+name: IP过滤采集
 
 on:
   schedule:
