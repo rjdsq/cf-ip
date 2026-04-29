@@ -1,4 +1,4 @@
-Import re
+import re
 import requests
 
 API_LIST = [
@@ -17,9 +17,7 @@ API_LIST = [
     "https://cf.090227.xyz/ct?ips=6",
     "https://raw.githubusercontent.com/ymyuuu/IPDB/main/bestproxy.txt",
     "https://raw.githubusercontent.com/cmliu/WorkerVless2sub/main/addressesapi.txt",
-
     "https://ipdb.api.030101.xyz/?type=bestcf"
-    
 ]
 
 DOMAIN_LIST = [
@@ -94,10 +92,10 @@ def rebuild_line(raw):
     remark = parts[1].strip() if len(parts) > 1 else ""
 
     ip = get_only_ip(base)
-    is_ipv6 = bool(IPV6_REG.search(base))
-    
+    is_ipv6_flag = bool(IPV6_REG.search(base))
+
     if not remark:
-        if is_ipv6: remark = "IPV6"
+        if is_ipv6_flag: remark = "IPV6"
         elif ip: remark = ip
         else: remark = base.split(":")[0]
 
@@ -138,59 +136,117 @@ def rebuild_line(raw):
             if m and m.group(1).upper() in COUNTRY_MAP: country_info = COUNTRY_MAP[m.group(1).upper()]
         if custom_name is None: custom_name = p
         else: rest_parts.append(p)
-            
+
     new_remark_list = []
     if country_info: new_remark_list.append(country_info)
-    if is_ipv6 and ip: new_remark_list.append("IPV6")
+    if is_ipv6_flag and ip: new_remark_list.append("IPV6")
     if custom_name: new_remark_list.append(custom_name)
     new_remark_list.extend(rest_parts)
-    
+
     new_remark = " | ".join(new_remark_list)
     if not new_remark:
-        if is_ipv6: new_remark = "IPV6"
+        if is_ipv6_flag: new_remark = "IPV6"
         elif ip: new_remark = ip
         else: new_remark = base.split(":")[0]
-        
-    return f"{base}#{new_remark}"
 
-def process_domain_item(raw_item):
-    parts = raw_item.split("#", 1)
-    base = parts[0].strip()
-    original_remark = parts[1].strip() if len(parts) > 1 else ""
+    return f"{base}#{new_remark}", country_info
 
-    port = "443"
-    host = base
-    if "]:" in base:
-        host, port = base.rsplit("]:", 1)
-        host = host.lstrip("[")
-    elif base.count(":") == 1:
-        host, port = base.split(":", 1)
+def extract_host(base):
+    b = base.strip()
+    if "]:" in b: return b.rsplit("]:", 1)[0].lstrip("[")
+    if b.count(":") == 1: return b.split(":", 1)[0]
+    ip6 = IPV6_REG.search(b)
+    if ip6: return ip6.group()
+    return b
 
-    remark = original_remark if original_remark else host
-    base_addr = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
-    return host, rebuild_line(f"{base_addr}#{remark}")
+def is_ipv4_addr(ip):
+    return bool(re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", ip))
+
+def is_ipv6_addr(ip):
+    return bool(re.fullmatch(r"([0-9a-fA-F]{1,4}:){2,}[0-9a-fA-F]{0,4}", ip))
 
 def main():
-    seen_addresses = set(); final_lines = []
-    
+    seen_hosts = {}
+    duplicates_log = []
+    domains = []
+    ipv4s = []
+    ipv6s = []
+    total_lines = 0
+
+    def process_entry(s):
+        nonlocal total_lines
+        s = s.strip()
+        if not s: return
+        total_lines += 1
+        base = s.split("#", 1)[0].strip()
+        host = extract_host(base)
+
+        if host in seen_hosts:
+            duplicates_log.append(f"{seen_hosts[host]} 和 {s} 重复")
+            return
+        seen_hosts[host] = s
+
+        if is_ipv4_addr(host):
+            line_str, c_info = rebuild_line(s)
+            ipv4s.append({'line': line_str, 'host': host, 'country': c_info})
+        elif is_ipv6_addr(host):
+            line_str, c_info = rebuild_line(s)
+            ipv6s.append({'line': line_str, 'host': host, 'country': c_info})
+        else:
+            port = "443"
+            if "]:" in base:
+                port = base.rsplit("]:", 1)[1]
+            elif base.count(":") == 1:
+                port = base.split(":", 1)[1]
+            base_fmt = f"{host}:{port}"
+            domains.append({'line': f"{base_fmt}#{host}", 'host': host})
+
     for api in API_LIST:
         txt = get(api)
         for line in txt.splitlines():
-            s = line.strip()
-            if not s: continue
-            base = s.split("#", 1)[0].strip()
-            addr = get_only_ip(base)
-            if not addr or addr in seen_addresses: continue
-            seen_addresses.add(addr)
-            final_lines.append(rebuild_line(s))
-            
-    for raw_item in DOMAIN_LIST:
-        host, rebuilt_line = process_domain_item(raw_item)
-        if host not in seen_addresses:
-            seen_addresses.add(host)
-            final_lines.append(rebuilt_line)
-            
-    with open("max.txt", "w", encoding="utf-8") as f:
-        for item in final_lines: f.write(item + "\n")
+            process_entry(line)
 
-if __name__ == "__main__": main()
+    for raw_item in DOMAIN_LIST:
+        parts = raw_item.split("#", 1)
+        base = parts[0].strip()
+        if "]:" in base:
+            h = base.rsplit("]:", 1)[0].lstrip("[")
+            p = base.rsplit("]:", 1)[1]
+        elif base.count(":") == 1:
+            h = base.split(":", 1)[0]
+            p = base.split(":", 1)[1]
+        else:
+            h = base
+            p = "443"
+        process_entry(f"{h}:{p}#{parts[1].strip() if len(parts) > 1 else ''}")
+
+    domains.sort(key=lambda x: len(x['host']))
+    ipv4s.sort(key=lambda x: (0 if x['country'] else 1, x['country'] or "", len(x['host'])))
+    ipv6s.sort(key=lambda x: (0 if x['country'] else 1, x['country'] or "", len(x['host'])))
+
+    final_lines = [x['line'] for x in domains] + [x['line'] for x in ipv4s] + [x['line'] for x in ipv6s]
+
+    with open("max.txt", "w", encoding="utf-8") as f:
+        for item in final_lines:
+            f.write(item + "\n")
+
+    with open("ip.log", "w", encoding="utf-8") as f:
+        for log in duplicates_log:
+            f.write(log + "\n")
+
+    print("="*35)
+    print(" 数据处理概览")
+    print("="*35)
+    print(f" 解析总条数: {total_lines}")
+    print(f" 重复条数:   {len(duplicates_log)}")
+    print(f" 最终有效:   {len(final_lines)}")
+    print("-" * 35)
+    print(f" 域名节点:   {len(domains)}")
+    print(f" IPv4节点:   {len(ipv4s)}")
+    print(f" IPv6节点:   {len(ipv6s)}")
+    print("="*35)
+    print(" [✓] 日志已写入 ip.log")
+    print(" [✓] 结果已保存至 max.txt")
+
+if __name__ == "__main__":
+    main()
