@@ -1,0 +1,34 @@
+name: 自动化IP过滤采集
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requirements
+        run: pip install requests
+
+      - name: Run IP Script
+        run: python ip.py
+
+      - name: Commit & Push
+        run: |
+          git config --global user.name "rjdsq"
+          git config --global user.email "你的GitHub邮箱"
+          git add max.txt ip.log
+          git commit -m "auto update max.txt and logs" || echo "no changes"
+          git push origin main --force
