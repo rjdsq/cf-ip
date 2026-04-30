@@ -1,7 +1,7 @@
 import os
 
 def merge_and_sort_files():
-    input_files = ['Cf.090227.xyz.txt', 'vps789.com.txt', 'cf-speed-dns.txt']
+    input_files = ['cf.090227.xyz.txt', 'vps789.com.txt', 'cf-speed-dns.txt']
     merged_data = {}
     total_raw_count = 0
 
