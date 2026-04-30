@@ -22,7 +22,7 @@ jobs:
 
       - name: 执行
         run: |
-          python Cf.090227.xyz.py || true
+          python cf.090227.xyz.py || true
           python vps789.com.py || true
           python cf-speed-dns.py || true
           python max.py
