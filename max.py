@@ -49,7 +49,7 @@ def merge_and_sort_files():
         is_domain = any(c.isalpha() for c in addr)
         
         if is_domain and not remarks and top_domain_node is None:
-            top_domain_node = f"{addr}#节点更新时间：{top_time_str}"
+            top_domain_node = f"{addr}#节点更新时间：{top_time_str} | 更新间隔：10分钟"
             continue
 
         line_str = f"{addr}#{' | '.join(remarks)}" if remarks else addr
@@ -87,7 +87,7 @@ def merge_and_sort_files():
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
     log.append(f"┃ 📊 全局对账: 读取 {sum(s['total'] for s in source_stats.values())} | 有效 {len(raw_data_map)} | 重复 {len(dup_records)}")
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append("┃ ⚠️ 深度审计清单 (精准行号定位):")
+    log.append("┃ ⚠️ 深度审计清单 (精准对账追踪):")
     if dup_records:
         for r in dup_records:
             max_line = addr_to_max_line.get(r["addr"], "N/A")
@@ -99,9 +99,9 @@ def merge_and_sort_files():
     else:
         log.append("┃ ✅ 此轮采集未发现任何重复数据项")
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append("┃ 📂 来源构成与过滤效率:")
+    log.append("┃ 📂 来源构成分布:")
     for src, s in source_stats.items():
-        log.append(f"┃ ┣ {src.ljust(15)}: 读取 {str(s['total']).rjust(3)} | 效 {str(s['valid']).rjust(3)} | 重 {str(s['dup']).rjust(3)}")
+        log.append(f"┃ ┣ {src.ljust(15)}: 读取 {str(s['total']).rjust(3)} | 有效 {str(s['valid']).rjust(3)} | 重复 {str(s['dup']).rjust(3)}")
     log.append("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
 
     for line in log: print(line)
