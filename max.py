@@ -1,11 +1,17 @@
 import os
+import datetime
 
 def merge_and_sort_files():
     input_files = ['cf.090227.xyz.txt', 'vps789.com.txt', 'cf-speed-dns.txt']
     merged_data = {}
     total_raw_count = 0
 
-    # 1. 暴力读取，只要有字符就记录
+    # 获取当前采集时间，格式为：2026/4/30/8:16
+    # 按照你的示例，去掉秒，使用斜杠分割
+    now = datetime.datetime.now()
+    time_str = f"{now.year}/{now.month}/{now.day}/{now.hour}:{now.minute:02d}"
+    time_remark = f"采集时间{time_str}"
+
     for file_name in input_files:
         if os.path.exists(file_name):
             with open(file_name, 'r', encoding='utf-8') as f:
@@ -16,7 +22,6 @@ def merge_and_sort_files():
                     
                     total_raw_count += 1
                     
-                    # 统一按 # 分割
                     if '#' in line:
                         parts = line.split('#', 1)
                         addr = parts[0].strip()
@@ -28,56 +33,58 @@ def merge_and_sort_files():
                     if not addr:
                         continue
 
-                    # 同地址去重，备注合并
                     if addr not in merged_data:
                         merged_data[addr] = []
+                    
+                    # 只有当备注不为空且不在列表中时才添加
                     if remark and remark not in merged_data[addr]:
                         merged_data[addr].append(remark)
 
-    # 2. 重新定义分类逻辑 (不靠正则，靠特征)
     groups = {
-        'domain_remark': [],   # 域名且有备注
-        'telecom': [],         # IP-电信
-        'mobile': [],          # IP-移动
-        'unicom': [],          # IP-联通
-        'ip_other': [],        # IP-其他备注
-        'ip_none': [],         # 纯IP-无备注
-        'domain_none': []      # 纯域名-无备注
+        'domain_remark': [],
+        'telecom': [],
+        'mobile': [],
+        'unicom': [],
+        'ip_other': [],
+        'ip_none': [],
+        'domain_none': []
     }
 
     for addr, remarks in merged_data.items():
-        merged_remark = " | ".join(remarks)
-        
-        # 判断是域名还是IP：只要包含字母，就是域名
-        is_domain = any(c.isalpha() for c in addr)
-        
-        if merged_remark:
-            line_str = f"{addr}#{merged_remark}"
+        # 核心逻辑修改：在原有备注后拼接时间
+        if remarks:
+            # 示例：ip # 备注 | 采集时间2026/4/30/8:16
+            merged_remark = " | ".join(remarks) + f" | {time_remark}"
         else:
-            line_str = addr
+            # 示例：ip # 采集时间2026/4/30/8:16
+            merged_remark = time_remark
+
+        is_domain = any(c.isalpha() for c in addr)
+        line_str = f"{addr}#{merged_remark}"
 
         if is_domain:
-            if merged_remark:
+            # 判定原始是否有备注（不含我们刚加的时间）
+            if remarks:
                 groups['domain_remark'].append(line_str)
             else:
                 groups['domain_none'].append(line_str)
         else:
-            if not merged_remark:
+            # 纯 IP 类归类
+            raw_remarks_str = " ".join(remarks)
+            if not remarks:
                 groups['ip_none'].append(line_str)
-            elif '电信' in merged_remark:
+            elif '电信' in raw_remarks_str:
                 groups['telecom'].append(line_str)
-            elif '移动' in merged_remark:
+            elif '移动' in raw_remarks_str:
                 groups['mobile'].append(line_str)
-            elif '联通' in merged_remark:
+            elif '联通' in raw_remarks_str:
                 groups['unicom'].append(line_str)
             else:
                 groups['ip_other'].append(line_str)
 
-    # 3. 组内长短排序
     for key in groups:
         groups[key].sort(key=len)
 
-    # 4. 汇总
     final_output = []
     final_output.extend(groups['domain_remark'])
     final_output.extend(groups['telecom'])
@@ -88,9 +95,11 @@ def merge_and_sort_files():
     final_output.extend(groups['domain_none'])
 
     final_count = len(final_output)
+    current_log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     overview = [
         "========== 采集汇总 ==========",
+        f"执行时间: {current_log_time}",
         f"初始总行数: {total_raw_count}",
         f"重复被过滤: {total_raw_count - final_count}",
         f"最终保留数: {final_count}",
