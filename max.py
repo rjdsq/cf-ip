@@ -68,7 +68,7 @@ def merge_and_sort_files():
         is_dom = any(c.isalpha() for c in addr)
         
         if is_dom and not rems and top_domain_node is None:
-            top_domain_node = f"{addr}#节点更新时间：{top_time_str} | 间隔：10分钟"
+            top_domain_node = f"{addr}#节点更新时间：{top_time_str} | 更新间隔：每10分钟1次"
             continue
 
         line_str = f"{addr}#{' | '.join(rems)}" if rems else addr
