@@ -1,4 +1,5 @@
 name: 优选采集
+run-name: ${{ github.event_name == 'repository_dispatch' && '优选采集-自动执行' || '优选采集' }}
 
 on:
   workflow_dispatch:
@@ -24,9 +25,11 @@ jobs:
 
       - name: 执行
         run: |
+          # 运行各路抓取脚本
           python cf.090227.xyz.py || true
           python vps789.com.py || true
           python cf-speed-dns.py || true
+          # 运行汇总对账脚本 (会自动处理 极速.txt)
           python max.py
 
       - name: 推送
@@ -34,5 +37,6 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Action"
           git add .
+          # 强制北京时间提交
           git commit -m "更新时间 $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')" || exit 0
           git push
