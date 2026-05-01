@@ -2,8 +2,10 @@ name: 优选采集
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [external_trigger]
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '5,25,45 * * * *'
 
 jobs:
   build:
