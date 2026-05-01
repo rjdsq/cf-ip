@@ -3,7 +3,7 @@ name: 优选采集
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [external_trigger]
+    types: [优选采集-自动执行]
   schedule:
     - cron: '5,25,45 * * * *'
 
