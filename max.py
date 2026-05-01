@@ -10,7 +10,7 @@ def merge_and_sort_files():
     now_utc = datetime.datetime.utcnow()
     bj_time = now_utc + datetime.timedelta(hours=8)
     std_time = bj_time.strftime('%Y-%m-%d %H:%M:%S')
-    data_tag = f"{bj_time.month}/{bj_time.day}/{bj_time.hour}:{bj_time.minute}"
+    top_time_str = f"{bj_time.year}/{bj_time.month}/{bj_time.day}/{bj_time.hour}:{bj_time.minute:02d}"
 
     for file_name in input_files:
         if not os.path.exists(file_name):
@@ -41,11 +41,19 @@ def merge_and_sort_files():
                     raw_data_map[addr]["remarks"].append(remark)
 
     groups = {'域名备注': [], '电信线路': [], '移动线路': [], '联通线路': [], '其他备注': [], '纯净IP': [], '纯净域名': []}
+    
+    top_domain_node = None
+    
     for addr, info in raw_data_map.items():
         remarks = info["remarks"]
-        merged_remark = " | ".join(remarks) + f" | {data_tag}" if remarks else data_tag
-        line_str = f"{addr}#{merged_remark}"
         is_domain = any(c.isalpha() for c in addr)
+        
+        if is_domain and not remarks and top_domain_node is None:
+            top_domain_node = f"{addr}#节点更新时间：{top_time_str}"
+            continue
+
+        line_str = f"{addr}#{' | '.join(remarks)}" if remarks else addr
+        
         if is_domain:
             target = '域名备注' if remarks else '纯净域名'
         else:
@@ -58,9 +66,14 @@ def merge_and_sort_files():
         groups[target].append(line_str)
 
     final_output = []
-    order = ['域名备注', '电信线路', '移动线路', '联通线路', '其他备注', '纯净IP', '纯净域名']
     addr_to_max_line = {}
-    current_line = 1
+    
+    if top_domain_node:
+        final_output.append(top_domain_node)
+        addr_to_max_line[top_domain_node.split('#')[0]] = 1
+
+    order = ['域名备注', '电信线路', '移动线路', '联通线路', '其他备注', '纯净IP', '纯净域名']
+    current_line = 2 if top_domain_node else 1
     for key in order:
         groups[key].sort(key=len)
         for item in groups[key]:
@@ -70,27 +83,25 @@ def merge_and_sort_files():
 
     log = []
     log.append("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓")
-    log.append(f"┃ 🚀 自动化高精度对账系统  [{std_time}] ┃")
+    log.append(f"┃ 🚀 自动化对账与更新系统  [{std_time}] ┃")
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append(f"┃ 📊 全局统计: 读取 {sum(s['total'] for s in source_stats.values())} | 保留 {len(raw_data_map)} | 拦截 {len(dup_records)}")
+    log.append(f"┃ 📊 全局对账: 读取 {sum(s['total'] for s in source_stats.values())} | 有效 {len(raw_data_map)} | 重复 {len(dup_records)}")
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append("┃ ⚠️ 深度重复审计清单 (精确位置追踪):")
-    
+    log.append("┃ ⚠️ 深度审计清单 (精准行号定位):")
     if dup_records:
         for r in dup_records:
             max_line = addr_to_max_line.get(r["addr"], "N/A")
-            log.append(f"┃ 📍 重复地址: [{r['addr'].strip()}]")
-            log.append(f"┃   ┣ 💎 最终保留于: max.txt 第 {max_line} 行")
+            log.append(f"┃ 📍 冲突地址: [{r['addr'].strip()}]")
+            log.append(f"┃   ┣ 💎 最终存放: max.txt 第 {max_line} 行")
             log.append(f"┃   ┣ 📥 原始出处: {r['target_origin']}")
-            log.append(f"┃   ┗ ❌ 冲突位置: {r['from_file']} 第 {r['from_line']} 行")
+            log.append(f"┃   ┗ ❌ 重复位置: {r['from_file']} 第 {r['from_line']} 行")
             log.append("┃")
     else:
-        log.append("┃ ✅ 此轮采集未发现任何重复项")
-
+        log.append("┃ ✅ 此轮采集未发现任何重复数据项")
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append("┃ 📂 来源分布详情:")
+    log.append("┃ 📂 来源构成与过滤效率:")
     for src, s in source_stats.items():
-        log.append(f"┃ ┣ {src.ljust(15)}: 读取 {str(s['total']).rjust(3)} | 有效 {str(s['valid']).rjust(3)} | 重复 {str(s['dup']).rjust(3)}")
+        log.append(f"┃ ┣ {src.ljust(15)}: 读取 {str(s['total']).rjust(3)} | 效 {str(s['valid']).rjust(3)} | 重 {str(s['dup']).rjust(3)}")
     log.append("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
 
     for line in log: print(line)
