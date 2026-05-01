@@ -2,109 +2,125 @@ import os
 import datetime
 
 def merge_and_sort_files():
+    fast_file = '极速.txt'
     input_files = ['cf.090227.xyz.txt', 'vps789.com.txt', 'cf-speed-dns.txt']
-    raw_data_map = {}
+    
+    final_fast_map = {}
+    other_data_map = {}
     dup_records = []
-    source_stats = {name: {"total": 0, "valid": 0, "dup": 0} for name in input_files}
+    source_stats = {name: {"total": 0, "valid": 0, "dup": 0} for name in input_files + [fast_file]}
     
     now_utc = datetime.datetime.utcnow()
     bj_time = now_utc + datetime.timedelta(hours=8)
     std_time = bj_time.strftime('%Y-%m-%d %H:%M:%S')
     top_time_str = f"{bj_time.year}/{bj_time.month}/{bj_time.day}/{bj_time.hour}:{bj_time.minute:02d}"
 
+    if os.path.exists(fast_file):
+        with open(fast_file, 'r', encoding='utf-8') as f:
+            for idx, line in enumerate(f, 1):
+                raw = line.strip()
+                if not raw: continue
+                source_stats[fast_file]["total"] += 1
+                
+                parts = raw.split('#', 1) if '#' in raw else [raw, ""]
+                addr = parts[0].strip()
+                rem = parts[1].strip()
+                
+                if addr not in final_fast_map:
+                    final_fast_map[addr] = rem
+                    source_stats[fast_file]["valid"] += 1
+                else:
+                    source_stats[fast_file]["dup"] += 1
+                    dup_records.append(f"┃ ⚠️ 金标内部重复: [{addr}] 在 {fast_file} 第 {idx} 行被舍弃")
+
     for file_name in input_files:
-        if not os.path.exists(file_name):
-            continue
+        if not os.path.exists(file_name): continue
         with open(file_name, 'r', encoding='utf-8') as f:
             for idx, line in enumerate(f, 1):
-                raw = line.replace('\n', '').replace('\r', '')
-                if not raw.strip(): continue
-                
+                raw = line.strip()
+                if not raw: continue
                 source_stats[file_name]["total"] += 1
+                
                 parts = raw.split('#', 1) if '#' in raw else [raw, ""]
-                addr = parts[0]
-                remark = parts[1].strip()
+                addr = parts[0].strip()
+                rem = parts[1].strip()
 
-                if addr not in raw_data_map:
-                    raw_data_map[addr] = {"remarks": [], "origin": f"{file_name} 第 {idx} 行"}
+                if addr in final_fast_map:
+                    source_stats[file_name]["dup"] += 1
+                    dup_records.append(f"┃ 🛡️ 金标保护触发: [{addr}] 来自 {file_name} 第 {idx} 行，因与极速清单冲突已被剔除")
+                    continue
+
+                if addr not in other_data_map:
+                    other_data_map[addr] = {"remarks": [], "origin": f"{file_name} 第 {idx} 行"}
                     source_stats[file_name]["valid"] += 1
                 else:
                     source_stats[file_name]["dup"] += 1
-                    dup_records.append({
-                        "addr": addr,
-                        "from_file": file_name,
-                        "from_line": idx,
-                        "target_origin": raw_data_map[addr]["origin"]
-                    })
+                    dup_records.append(f"┃ ✂️ 普通重复: [{addr}] 在 {file_name} 第 {idx} 行被过滤")
                 
-                if remark and remark not in raw_data_map[addr]["remarks"]:
-                    raw_data_map[addr]["remarks"].append(remark)
+                if rem and rem not in other_data_map[addr]["remarks"]:
+                    other_data_map[addr]["remarks"].append(rem)
 
     groups = {'域名备注': [], '电信线路': [], '移动线路': [], '联通线路': [], '其他备注': [], '纯净IP': [], '纯净域名': []}
-    
     top_domain_node = None
     
-    for addr, info in raw_data_map.items():
-        remarks = info["remarks"]
-        is_domain = any(c.isalpha() for c in addr)
+    for addr, info in other_data_map.items():
+        rems = info["remarks"]
+        is_dom = any(c.isalpha() for c in addr)
         
-        if is_domain and not remarks and top_domain_node is None:
-            top_domain_node = f"{addr}#节点更新时间：{top_time_str} | 更新间隔：10分钟"
+        if is_dom and not rems and top_domain_node is None:
+            top_domain_node = f"{addr}#节点更新时间：{top_time_str} | 间隔：10分钟"
             continue
 
-        line_str = f"{addr}#{' | '.join(remarks)}" if remarks else addr
-        
-        if is_domain:
-            target = '域名备注' if remarks else '纯净域名'
+        line_str = f"{addr}#{' | '.join(rems)}" if rems else addr
+        if is_dom:
+            target = '域名备注' if rems else '纯净域名'
         else:
-            raw_rem = " ".join(remarks)
-            if not remarks: target = '纯净IP'
-            elif '电信' in raw_rem: target = '电信线路'
-            elif '移动' in raw_rem: target = '移动线路'
-            elif '联通' in raw_rem: target = '联通线路'
+            raw_all_rems = " ".join(rems)
+            if not rems: target = '纯净IP'
+            elif '电信' in raw_all_rems: target = '电信线路'
+            elif '移动' in raw_all_rems: target = '移动线路'
+            elif '联通' in raw_all_rems: target = '联通线路'
             else: target = '其他备注'
         groups[target].append(line_str)
 
     final_output = []
-    addr_to_max_line = {}
+    addr_to_line = {}
     
     if top_domain_node:
         final_output.append(top_domain_node)
-        addr_to_max_line[top_domain_node.split('#')[0]] = 1
-
+        addr_to_line[top_domain_node.split('#')[0]] = 1
+    
+    curr = len(final_output) + 1
+    for addr, rem in final_fast_map.items():
+        line = f"{addr}#{rem}" if rem else addr
+        final_output.append(line)
+        addr_to_line[addr] = curr
+        curr += 1
+    
     order = ['域名备注', '电信线路', '移动线路', '联通线路', '其他备注', '纯净IP', '纯净域名']
-    current_line = 2 if top_domain_node else 1
     for key in order:
         groups[key].sort(key=len)
         for item in groups[key]:
             final_output.append(item)
-            addr_to_max_line[item.split('#')[0]] = current_line
-            current_line += 1
+            addr_to_line[item.split('#')[0]] = curr
+            curr += 1
 
-    log = []
-    log.append("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓")
-    log.append(f"┃ 🚀 自动化对账与更新系统  [{std_time}] ┃")
+    log = [
+        "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+        f"┃ 🚀 极速优先-高精度自动化对账  [{std_time}] ┃",
+        "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫",
+        f"┃ 📊 汇总: 读取 {sum(s['total'] for s in source_stats.values())} | 保留 {len(final_output)} | 拦截 {sum(s['dup'] for s in source_stats.values())}",
+        "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫",
+        "┃ 📂 来源细分 (有效/原始):"
+    ]
+    for s_name, s_val in source_stats.items():
+        log.append(f"┃ ┣ {s_name.ljust(15)}: {str(s_val['valid']).rjust(3)} / {str(s_val['total']).rjust(3)}")
     log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append(f"┃ 📊 全局对账: 读取 {sum(s['total'] for s in source_stats.values())} | 有效 {len(raw_data_map)} | 重复 {len(dup_records)}")
-    log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append("┃ ⚠️ 深度审计清单 (精准对账追踪):")
-    if dup_records:
-        for r in dup_records:
-            max_line = addr_to_max_line.get(r["addr"], "N/A")
-            log.append(f"┃ 📍 冲突地址: [{r['addr'].strip()}]")
-            log.append(f"┃   ┣ 💎 最终存放: max.txt 第 {max_line} 行")
-            log.append(f"┃   ┣ 📥 原始出处: {r['target_origin']}")
-            log.append(f"┃   ┗ ❌ 重复位置: {r['from_file']} 第 {r['from_line']} 行")
-            log.append("┃")
-    else:
-        log.append("┃ ✅ 此轮采集未发现任何重复数据项")
-    log.append("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫")
-    log.append("┃ 📂 来源构成分布:")
-    for src, s in source_stats.items():
-        log.append(f"┃ ┣ {src.ljust(15)}: 读取 {str(s['total']).rjust(3)} | 有效 {str(s['valid']).rjust(3)} | 重复 {str(s['dup']).rjust(3)}")
+    log.append("┃ ⚠️ 深度审计清单:")
+    log.extend(dup_records if dup_records else ["┃ ┗ ✅ 无冲突记录"])
     log.append("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
 
-    for line in log: print(line)
+    for l in log: print(l)
     with open('max.txt', 'w', encoding='utf-8') as f:
         f.write('\n'.join(final_output) + '\n')
     with open('max.log', 'w', encoding='utf-8') as f:
