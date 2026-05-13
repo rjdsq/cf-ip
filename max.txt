@@ -1,24 +1,51 @@
-doro.lol#节点更新时间：2026/5/14/1:30 | 更新间隔：每10分钟1次
+youxuan.cf.090227.xyz#节点更新时间：2026/5/14/1:40 | 更新间隔：每10分钟1次
 ct.877774.xyz#⚡ 电信极速
 cmcc.877774.xyz#⚡ 移动极速
 cu.877774.xyz#⚡ 联通极速
 asia.877774.xyz#⚡ 亚洲极速
 na.877774.xyz#⚡ 美洲极速
 eur.877774.xyz#⚡ 欧洲极速
-172.64.157.2#电信
-104.18.33.225#电信
-104.18.37.133#电信
+time.is#官方优选
+icook.hk#官方优选
+icook.tw#官方优选
+mfa.gov.ua#乌克兰外交部
+www.visa.cn#Visa中国
+store.ubi.com#Ubisoft
+www.shopify.com#Shopify官方
+staticdelivery.nexusmods.com#NexusMods
+8.35.211.143#电信
+8.39.125.174#电信
+172.64.159.7#电信
+173.245.59.46#电信
+173.245.59.30#电信
+104.18.39.150#电信
 104.18.40.189#电信
-104.18.45.223#电信
-104.18.95.36#移动
+104.18.43.246#电信
+162.159.44.228#电信
+162.159.38.107#电信
+108.162.198.127#电信
+104.19.32.1#移动
+104.19.53.2#移动
+104.19.33.24#移动
+104.19.32.48#移动
+104.19.57.228#移动
+104.19.39.170#移动
+104.19.62.213#移动
+104.19.60.198#移动
 104.17.211.59#移动
 104.17.54.168#移动
+104.17.148.175#移动
 172.64.156.112#移动
-104.19.53.2#联通
-104.17.215.2#联通
+162.159.152.139#移动
+104.26.8.183#联通
+104.26.7.132#联通
 104.19.60.61#联通
-104.17.210.85#联通
-104.17.215.50#联通
+172.64.157.2#联通
+172.67.66.179#联通
+172.67.65.208#联通
+104.17.117.43#联通
+104.17.120.41#联通
+162.159.136.58#联通
 104.18.42.80#69.88ms | 速度:0.29MB/s
 172.64.53.166#42.75ms | 速度:70.98MB/s
 162.159.44.41#63.71ms | 速度:70.85MB/s
@@ -27,22 +54,44 @@ eur.877774.xyz#⚡ 欧洲极速
 108.162.198.86#58.46ms | 速度:70.31MB/s
 162.159.45.142#54.75ms | 速度:67.75MB/s
 162.159.38.102#60.54ms | 速度:54.77MB/s
+doro.lol
+cf.0sm.com
 01-cctv.com
 p.etime.vip
+saas.sin.fan
 ping.ctrl.li
-d.lma.de5.net
+cf.877774.xyz
+cf.877771.xyz
+cf.900501.xyz
 fn.130519.xyz
+tencentapp.cn
+d.lma.de5.net
+cfip.cfcdn.vip
 cf.cooteep.com
+cdn.2020111.xyz
 blog.646474.xyz
 cf.78607323.xyz
 op.chinwa.eu.cc
+cf.tencentapp.cn
+cdns.doon.eu.org
+cfip.1323123.xyz
+cfip.xxxxxxxx.tk
+nrtcfdns.zone.id
+xn--b6gac.eu.org
 4.cf.3666888.xyz
 animal.nuaa.tech
-cf.tencentapp.cn
+bestcf.030101.xyz
+777.ai7777777.xyz
 ipc.zmxf.dpdns.org
+nrt.xxxxxxxx.nyc.mn
 yg2.ygkkk.dpdns.org
 cfvip.cf.3666888.xyz
+cloudflare.182682.xyz
+cloudflare-dl.byoip.top
+cf.cloudflare.182682.xyz
 1757760858.tencentapp.cn
 snipaste1.speedip.eu.org
+cloudflare-ip.mofashi.ltd
 1749991941.bilibiliapp.cn
+freeyx.cloudflare88.eu.org
 0.5.0.0.7.0.f.1.0.7.4.0.1.0.0.2.xzhi.eu.org
