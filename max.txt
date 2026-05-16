@@ -1,4 +1,4 @@
-youxuan.cf.090227.xyz#节点更新时间：2026/5/17/2:10 | 更新间隔：每10分钟1次
+youxuan.cf.090227.xyz#节点更新时间：2026/5/17/2:20 | 更新间隔：每10分钟1次
 ct.877774.xyz#⚡ 电信极速
 cmcc.877774.xyz#⚡ 移动极速
 cu.877774.xyz#⚡ 联通极速
@@ -13,38 +13,38 @@ www.visa.cn#Visa中国
 store.ubi.com#Ubisoft
 www.shopify.com#Shopify官方
 staticdelivery.nexusmods.com#NexusMods
-8.39.125.32#电信
-8.35.211.48#电信
-8.35.211.144#电信
-172.64.157.2#电信
-162.159.47.64#电信
-104.18.37.133#电信
-172.64.159.67#电信
-173.245.59.142#电信
-198.41.223.246#电信
+8.39.125.72#电信
+8.39.125.244#电信
+8.39.125.158#电信
+8.39.125.181#电信
+104.18.45.68#电信
+198.41.223.71#电信
+198.41.223.20#电信
+104.18.33.225#电信
+172.64.144.170#电信
 172.64.154.204#电信
-108.162.198.127#电信
-104.18.45.68#移动
-104.18.95.36#移动
-104.19.52.223#移动
-104.19.39.148#移动
-104.19.48.250#移动
-104.19.53.144#移动
-162.159.153.84#移动
+172.64.156.112#电信
+104.19.36.88#移动
+104.19.39.175#移动
+104.19.55.216#移动
+104.19.51.242#移动
+104.18.39.150#移动
+172.64.147.88#移动
+162.159.152.96#移动
+162.159.152.97#移动
+104.17.103.239#移动
 104.17.156.226#移动
-104.17.190.127#移动
-172.64.144.170#移动
-162.159.152.156#移动
-162.159.152.244#移动
-162.159.152.241#移动
-104.26.11.47#联通
-104.26.14.37#联通
-172.67.73.185#联通
-172.67.65.255#联通
+104.17.186.240#移动
+162.159.153.231#移动
+162.159.152.146#移动
+104.26.0.126#联通
+104.26.5.126#联通
+172.67.74.128#联通
+172.67.67.232#联通
+104.17.146.22#联通
 104.18.44.151#联通
-104.19.60.152#联通
-104.17.148.175#联通
-104.19.159.172#联通
+104.16.254.231#联通
+104.17.158.215#联通
 198.41.211.71#69.96ms | 速度:0.56MB/s
 162.159.38.89#54.63ms | 速度:70.87MB/s
 172.64.229.87#60.21ms | 速度:70.74MB/s
@@ -55,25 +55,25 @@ staticdelivery.nexusmods.com#NexusMods
 162.159.14.218#70.08ms | 速度:0.40MB/s
 162.159.45.119#47.24ms | 速度:69.99MB/s
 108.162.198.125#45.96ms | 速度:69.00MB/s
-kniu.cc
 doro.lol
-cnllm.com
 ys2046.cv
 cf.0sm.com
-baota.us.kg
+p.etime.vip
 saas.sin.fan
-101yaoye.com
-ping.ctrl.li
+cmcc.vvvv.ee
 cf.877774.xyz
 cf.877771.xyz
 cf.900501.xyz
 fn.130519.xyz
 tencentapp.cn
-b.lma.de5.net
+d.lma.de5.net
+g.lma.de5.net
+so.360832.xyz
+www.swowd.com
 cfip.cfcdn.vip
-www.cdzxdz.com
 cdn.2020111.xyz
-op.chinwa.eu.cc
+blog.646474.xyz
+cf.78607323.xyz
 cf.tencentapp.cn
 cdns.doon.eu.org
 cfip.1323123.xyz
@@ -83,17 +83,16 @@ xn--b6gac.eu.org
 animal.nuaa.tech
 bestcf.030101.xyz
 777.ai7777777.xyz
-prompt.gzcrtw.com
 ipc.zmxf.dpdns.org
+www.adbcardpay.xyz
 nrt.xxxxxxxx.nyc.mn
-yg2.ygkkk.dpdns.org
-yg9.ygkkk.dpdns.org
+336688.chinwa.eu.cc
 auto.dolby.dpdns.org
 jellyfin.roddy.eu.cc
+yg11.ygkkk.dpdns.org
 cloudflare.182682.xyz
 cloudflare-dl.byoip.top
 cf.cloudflare.182682.xyz
-snipaste1.speedip.eu.org
 cloudflare-ip.mofashi.ltd
 freeyx.cloudflare88.eu.org
 0.5.0.0.7.0.f.1.0.7.4.0.1.0.0.2.xzhi.eu.org
